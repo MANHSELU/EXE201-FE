@@ -18,7 +18,7 @@ interface ScheduleSlot {
   date: string;
   startTime: string;
   endTime: string;
-  status: string;
+  status: string; // "PENDING" | "ATTENDED" | "COMPLETED" | "CANCELLED"
 }
 
 const LecturerSchedule: React.FC = () => {
@@ -45,7 +45,7 @@ const LecturerSchedule: React.FC = () => {
       const slotsRes = await api.get("/lecturer/slots/upcoming");
       setSlots(slotsRes.data.data || []);
     } catch (err) {
-      console.error(err);
+      // Error fetching schedules
     }
   };
 
@@ -104,23 +104,36 @@ const LecturerSchedule: React.FC = () => {
 
   const weekDays = getWeekDays();
   const today = new Date();
-  const weekStart = new Date(currentWeekStart);
-  const weekEnd = new Date(currentWeekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
+  
+  // Helper: Convert date to YYYY-MM-DD string for comparison (avoid timezone issues)
+  const toDateString = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get week start/end as date strings
+  const weekStartStr = toDateString(currentWeekStart);
+  const weekEndDate = new Date(currentWeekStart);
+  weekEndDate.setDate(weekEndDate.getDate() + 6);
+  const weekEndStr = toDateString(weekEndDate);
 
   // Filter slots by selected date OR by current week
   const filteredSlots = slots.filter(slot => {
-    const slotDate = new Date(slot.date);
+    // slot.date is already a string like "2026-01-26"
+    const slotDateStr = slot.date.split('T')[0]; // Handle both "2026-01-26" and "2026-01-26T00:00:00"
+    
     if (selectedDate !== null) {
       // Filter by specific selected date
-      return slotDate.getDate() === selectedDate && 
-             slotDate.getMonth() === selectedMonth && 
-             slotDate.getFullYear() === selectedYear;
+      const selectedDateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+      return slotDateStr === selectedDateStr;
     } else {
-      // Filter by current week
-      return slotDate >= weekStart && slotDate <= weekEnd;
+      // Filter by current week (compare strings)
+      return slotDateStr >= weekStartStr && slotDateStr <= weekEndStr;
     }
   });
+
 
   return (
     <>
@@ -323,6 +336,46 @@ const LecturerSchedule: React.FC = () => {
         .materials-btn:hover {
           transform: scale(1.05);
           box-shadow: 0 6px 20px rgba(255,112,67,0.5);
+        }
+        .materials-btn.active {
+          background: linear-gradient(to right, #FF7043, #E64A19);
+          animation: pulse 2s infinite;
+        }
+        .materials-btn.disabled {
+          background: #E5E7EB;
+          color: #9CA3AF;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+        .materials-btn.disabled:hover {
+          transform: none;
+          box-shadow: none;
+        }
+        .materials-btn.attended {
+          background: linear-gradient(to right, #81C784, #4CAF50);
+          box-shadow: 0 4px 15px rgba(76,175,80,0.4);
+          cursor: default;
+        }
+        .materials-btn.attended:hover {
+          transform: none;
+        }
+        .materials-btn.ended {
+          background: #9CA3AF;
+          color: white;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+        .materials-btn.ended:hover {
+          transform: none;
+          box-shadow: none;
+        }
+        @keyframes pulse {
+          0%, 100% {
+            box-shadow: 0 4px 15px rgba(255,112,67,0.4);
+          }
+          50% {
+            box-shadow: 0 4px 25px rgba(255,112,67,0.7);
+          }
         }
         .empty-state {
           background: white;
@@ -548,10 +601,10 @@ const LecturerSchedule: React.FC = () => {
       <div className="schedule-container">
         {/* Main Container */}
         <main className="main-content">
-          {/* Page Title */}
+          {/* Tiêu đề trang */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', marginBottom: '0.25rem' }}>Teaching Schedule</h1>
-            <p style={{ fontSize: '14px', color: '#6B7280' }}>Manage your classes and track attendance</p>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', marginBottom: '0.25rem' }}>Lịch Dạy</h1>
+            <p style={{ fontSize: '14px', color: '#6B7280' }}>Quản lý lớp học và theo dõi điểm danh</p>
           </div>
 
           {/* Calendar Widget */}
@@ -559,9 +612,9 @@ const LecturerSchedule: React.FC = () => {
             {/* Top Row */}
             <div className="calendar-header">
               <div>
-                <h2 style={{ fontSize: '14px', fontWeight: 500, color: '#1F2937' }}>Current week:</h2>
+                <h2 style={{ fontSize: '14px', fontWeight: 500, color: '#1F2937' }}>Tuần hiện tại:</h2>
                 <p style={{ color: '#FF8A65', fontWeight: 600, marginTop: '0.25rem' }}>
-                  {weekStart.getDate().toString().padStart(2, '0')}/{(weekStart.getMonth() + 1).toString().padStart(2, '0')}/{weekStart.getFullYear()} - {weekEnd.getDate().toString().padStart(2, '0')}/{(weekEnd.getMonth() + 1).toString().padStart(2, '0')}/{weekEnd.getFullYear()}
+                  {currentWeekStart.getDate().toString().padStart(2, '0')}/{(currentWeekStart.getMonth() + 1).toString().padStart(2, '0')}/{currentWeekStart.getFullYear()} - {weekEndDate.getDate().toString().padStart(2, '0')}/{(weekEndDate.getMonth() + 1).toString().padStart(2, '0')}/{weekEndDate.getFullYear()}
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -607,10 +660,10 @@ const LecturerSchedule: React.FC = () => {
           {selectedDate !== null && (
             <div className="filter-info">
               <span className="filter-text">
-                📅 Showing schedules for {selectedDate}/{selectedMonth + 1}/{selectedYear}
+                📅 Đang xem lịch ngày {selectedDate}/{selectedMonth + 1}/{selectedYear}
               </span>
               <button className="clear-filter-btn" onClick={() => setSelectedDate(null)}>
-                Show all week
+                Xem cả tuần
               </button>
             </div>
           )}
@@ -639,7 +692,7 @@ const LecturerSchedule: React.FC = () => {
                     style={{ marginTop: '1rem' }}
                     onClick={() => setSelectedDate(null)}
                   >
-                    Xem tất cả tuần này
+                    Xem cả tuần
                   </button>
                 )}
               </div>
@@ -647,8 +700,12 @@ const LecturerSchedule: React.FC = () => {
               filteredSlots.map((slot, index) => {
                 const now = new Date();
                 const slotDate = new Date(slot.date);
-                const slotStart = new Date(`${slot.date}T${slot.startTime}`);
-                const slotEnd = new Date(`${slot.date}T${slot.endTime}`);
+                
+                // Lấy chuỗi ngày (YYYY-MM-DD) từ slot.date
+                const dateStr = slot.date.split('T')[0];
+                const slotStart = new Date(`${dateStr}T${slot.startTime}:00`);
+                const slotEnd = new Date(`${dateStr}T${slot.endTime}:00`);
+                
                 const isHappening = now >= slotStart && now <= slotEnd;
                 const isPast = now > slotEnd;
                 const dayNameEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][slotDate.getDay()];
@@ -671,7 +728,7 @@ const LecturerSchedule: React.FC = () => {
                       )}
                       {/* Slot Time */}
                       <div>
-                        <div className="timeline-slot">Slot: 3</div>
+                        <div className="timeline-slot">Tiết: {index + 1}</div>
                         <div className="timeline-time">{slot.startTime} - {slot.endTime}</div>
                       </div>
                     </div>
@@ -684,41 +741,99 @@ const LecturerSchedule: React.FC = () => {
                       <div className="card-content">
                         {/* Header Row: Room & Badge */}
                         <div className="card-header">
-                          <span className="room-text">Room: <strong>{slot.roomId.name}</strong></span>
-                          {!isPast && (
-                            <span className={`badge ${isHappening ? 'badge-upcoming' : 'badge-upcoming'}`}>
-                              {isHappening ? 'present' : 'upcoming'}
-                            </span>
-                          )}
-                          {isPast && (
-                            <span className="badge badge-ended">ended</span>
-                          )}
+                          <span className="room-text">Phòng: <strong>{slot.roomId.name}</strong></span>
+                          {(() => {
+                            const isAttended = slot.status === "ATTENDED" || slot.status === "COMPLETED";
+                            if (isAttended) {
+                              return <span className="badge" style={{ background: '#E8F5E9', color: '#2E7D32' }}>✓ Đã điểm danh</span>;
+                            } else if (isHappening) {
+                              return <span className="badge" style={{ background: '#FFF3E0', color: '#E65100' }}>● Đang diễn ra</span>;
+                            } else if (isPast) {
+                              return <span className="badge badge-ended">Đã kết thúc</span>;
+                            } else {
+                              return <span className="badge badge-upcoming">Sắp tới</span>;
+                            }
+                          })()}
                         </div>
 
-                        {/* Subject Code */}
-                        <h3 className="subject-title">Subject Code: {slot.subjectId.code}</h3>
+                        {/* Mã môn học */}
+                        <h3 className="subject-title">Mã môn: {slot.subjectId.code}</h3>
 
-                        {/* Details List */}
+                        {/* Chi tiết */}
                         <div>
-                          <p className="detail-item">SessionNo: 5</p>
-                          <p className="detail-item">Group class: {slot.classId.name}</p>
-                          <p className="detail-item">Lecturer: HanhNT54</p>
+                          <p className="detail-item">Môn: {slot.subjectId.name}</p>
+                          <p className="detail-item">Lớp: {slot.classId.name}</p>
+                          <p className="detail-item">Giảng viên: {user?.fullName || 'N/A'}</p>
                         </div>
 
-                        {/* Create QRCode Button */}
-                        {!isPast && (
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCreateCode(slot._id);
-                              }}
-                              className="materials-btn"
-                            >
-                              Create QRCode
-                            </button>
-                          </div>
-                        )}
+                        {/* Create QRCode Button - Logic dựa trên thời gian và status */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+                          {(() => {
+                            // Check status từ slot
+                            const isAttended = slot.status === "ATTENDED" || slot.status === "COMPLETED";
+                            
+                            // Check thời gian
+                            const isNotYet = now < slotStart;
+                            const isActive = now >= slotStart && now <= slotEnd;
+                            const isEnded = now > slotEnd;
+
+                            // 1. Đã điểm danh rồi (ưu tiên cao nhất)
+                            if (isAttended) {
+                              return (
+                                <button className="materials-btn attended" disabled>
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className="material-icons-outlined" style={{ fontSize: '18px' }}>check_circle</span>
+                                    Đã điểm danh
+                                  </span>
+                                </button>
+                              );
+                            }
+                            
+                            // 2. Đã kết thúc (hết giờ mà chưa điểm danh)
+                            if (isEnded) {
+                              return (
+                                <button className="materials-btn ended" disabled>
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className="material-icons-outlined" style={{ fontSize: '18px' }}>event_busy</span>
+                                    Đã kết thúc
+                                  </span>
+                                </button>
+                              );
+                            }
+                            
+                            // 3. Đang trong giờ học - có thể tạo mã
+                            if (isActive) {
+                              return (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCreateCode(slot._id);
+                                  }}
+                                  className="materials-btn active"
+                                >
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className="material-icons-outlined" style={{ fontSize: '18px' }}>qr_code_2</span>
+                                    Tạo mã điểm danh
+                                  </span>
+                                </button>
+                              );
+                            }
+                            
+                            // 4. Chưa tới giờ
+                            if (isNotYet) {
+                              return (
+                                <button className="materials-btn disabled" disabled>
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className="material-icons-outlined" style={{ fontSize: '18px' }}>schedule</span>
+                                    Chưa tới giờ
+                                  </span>
+                                </button>
+                              );
+                            }
+                            
+                            return null;
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </article>
