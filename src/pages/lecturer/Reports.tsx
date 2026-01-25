@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import api from "../../services/api";
 import Footer from "../../components/Footer";
 
 interface ClassInfo {
@@ -128,7 +127,7 @@ const LecturerReports: React.FC = () => {
     }
   };
 
-  const fetchStudentAttendances = async (recordId: string) => {
+  const fetchStudentAttendances = async (_recordId: string) => {
     setDetailLoading(true);
     try {
       // Mock API call

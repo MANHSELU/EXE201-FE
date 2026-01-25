@@ -16,8 +16,8 @@ interface Slot {
 const LecturerDashboard: React.FC = () => {
   const { user } = useAuth();
   const [upcomingSlots, setUpcomingSlots] = useState<Slot[]>([]);
-  const [totalClasses, setTotalClasses] = useState(3);
-  const [avgAttendance, setAvgAttendance] = useState(85);
+  const [totalClasses] = useState(3);
+  const [avgAttendance] = useState(85);
 
   useEffect(() => {
     fetchUpcomingSlots();

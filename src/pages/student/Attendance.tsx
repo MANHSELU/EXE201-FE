@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
@@ -11,7 +11,7 @@ const StudentAttendance: React.FC = () => {
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [cameraActive, setCameraActive] = useState(false);
-  const [faceDetected, setFaceDetected] = useState(false);
+  const [faceDetected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -166,7 +166,7 @@ const StudentAttendance: React.FC = () => {
                 {code.map((digit, idx) => (
                   <input
                     key={idx}
-                    ref={(el) => (inputRefs.current[idx] = el)}
+                    ref={(el) => { inputRefs.current[idx] = el; }}
                     type="text"
                     maxLength={1}
                     value={digit}

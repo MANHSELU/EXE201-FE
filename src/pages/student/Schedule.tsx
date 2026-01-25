@@ -35,9 +35,9 @@ interface Schedule {
 
 const StudentSchedule: React.FC = () => {
   const { user, logout } = useAuth();
-  const [slots, setSlots] = useState<Slot[]>([]);
+  const [, setSlots] = useState<Slot[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     fetchSchedules();

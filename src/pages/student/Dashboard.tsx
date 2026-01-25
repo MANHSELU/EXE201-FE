@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import api from "../../services/api";
 import Footer from "../../components/Footer";
 
 interface AttendanceStats {
@@ -11,7 +10,7 @@ interface AttendanceStats {
 
 const StudentDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const [stats, setStats] = useState<AttendanceStats[]>([
+  const [stats] = useState<AttendanceStats[]>([
     { subject: "Vật Lý", present: 9, total: 10 },
     { subject: "Toán Học", present: 8, total: 10 },
     { subject: "Lập Trình", present: 7, total: 10 },

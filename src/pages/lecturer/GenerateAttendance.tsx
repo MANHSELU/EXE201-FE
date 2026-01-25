@@ -12,7 +12,7 @@ const GenerateAttendance: React.FC = () => {
   const [slots, setSlots] = useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [attendanceCode, setAttendanceCode] = useState("");
-  const [sessionId, setSessionId] = useState("");
+  const [, setSessionId] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
   const [loading, setLoading] = useState(false);
   const DURATION_MINUTES = 5; // Fixed 5 minutes
@@ -66,7 +66,9 @@ const GenerateAttendance: React.FC = () => {
     }
   };
 
-  const selectedSlotData = slots.find((s) => s._id === selectedSlot);
+  // Get selected slot data for display if needed
+  const _selectedSlotData = slots.find((s) => s._id === selectedSlot);
+  void _selectedSlotData; // Suppress unused warning
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
