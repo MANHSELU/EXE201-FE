@@ -122,7 +122,7 @@ const LecturerReports: React.FC = () => {
         setLoading(false);
       }, 500);
     } catch (err) {
-      console.error(err);
+      // Lỗi khi tải dữ liệu
       setLoading(false);
     }
   };
@@ -150,7 +150,7 @@ const LecturerReports: React.FC = () => {
         setDetailLoading(false);
       }, 300);
     } catch (err) {
-      console.error(err);
+      // Lỗi khi tải chi tiết
       setDetailLoading(false);
     }
   };
@@ -225,15 +225,15 @@ const LecturerReports: React.FC = () => {
             </div>
 
             <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-              <a href="/lecturer/dashboard" style={{ fontSize: '14px', fontWeight: 500, color: '#6B7280', textDecoration: 'none' }}>Dashboard</a>
-              <a href="/lecturer/schedule" style={{ fontSize: '14px', fontWeight: 500, color: '#6B7280', textDecoration: 'none' }}>Schedule</a>
-              <a href="/lecturer/reports" style={{ fontSize: '14px', fontWeight: 600, color: '#FF7043', textDecoration: 'none' }}>Attendance Report</a>
+              <a href="/lecturer/dashboard" style={{ fontSize: '14px', fontWeight: 500, color: '#6B7280', textDecoration: 'none' }}>Trang chủ</a>
+              <a href="/lecturer/schedule" style={{ fontSize: '14px', fontWeight: 500, color: '#6B7280', textDecoration: 'none' }}>Lịch dạy</a>
+              <a href="/lecturer/reports" style={{ fontSize: '14px', fontWeight: 600, color: '#FF7043', textDecoration: 'none' }}>Báo cáo điểm danh</a>
             </nav>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#1F2937', margin: 0 }}>{user?.fullName || 'Lecturer'}</p>
-                <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>Lecturer</p>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#1F2937', margin: 0 }}>{user?.fullName || 'Giảng viên'}</p>
+                <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>Giảng viên</p>
               </div>
               <div style={{
                 width: '40px',
@@ -252,7 +252,7 @@ const LecturerReports: React.FC = () => {
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
           {/* Page Title */}
           <div style={{ marginBottom: '2rem' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', marginBottom: '0.5rem' }}>Attendance Reports</h1>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', marginBottom: '0.5rem' }}>Báo cáo điểm danh</h1>
             <p style={{ fontSize: '14px', color: '#6B7280' }}>Xem báo cáo điểm danh các lớp bạn đang dạy</p>
           </div>
 

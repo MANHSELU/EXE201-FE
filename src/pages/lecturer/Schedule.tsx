@@ -87,7 +87,7 @@ const LecturerSchedule: React.FC = () => {
   // Generate week days from currentWeekStart
   const getWeekDays = () => {
     const days = [];
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayNames = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
     for (let i = 0; i < 7; i++) {
       const date = new Date(currentWeekStart);
       date.setDate(currentWeekStart.getDate() + i);
@@ -575,9 +575,9 @@ const LecturerSchedule: React.FC = () => {
           </div>
 
           <nav className="nav-links">
-            <a href="/lecturer/dashboard" className="nav-link">Dashboard</a>
-            <a href="/lecturer/schedule" className="nav-link active">Schedule</a>
-            <a href="/lecturer/reports" className="nav-link">Attendance Report</a>
+            <a href="/lecturer/dashboard" className="nav-link">Trang chủ</a>
+            <a href="/lecturer/schedule" className="nav-link active">Lịch dạy</a>
+            <a href="/lecturer/reports" className="nav-link">Báo cáo điểm danh</a>
           </nav>
 
           <div className="user-section">
@@ -708,7 +708,14 @@ const LecturerSchedule: React.FC = () => {
                 
                 const isHappening = now >= slotStart && now <= slotEnd;
                 const isPast = now > slotEnd;
-                const dayNameEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][slotDate.getDay()];
+                const dayNameVi = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"][slotDate.getDay()];
+                
+                // Tính số tiết trong ngày (đánh số theo thời gian)
+                const sameDaySlots = filteredSlots.filter(s => {
+                  const sDate = new Date(s.date).toDateString();
+                  return sDate === slotDate.toDateString();
+                }).sort((a, b) => a.startTime.localeCompare(b.startTime));
+                const slotNumberInDay = sameDaySlots.findIndex(s => s._id === slot._id) + 1;
                 
                 // Check if this is the first slot of a new day
                 const isNewDay = index === 0 || new Date(filteredSlots[index - 1].date).getDate() !== slotDate.getDate();
@@ -723,12 +730,12 @@ const LecturerSchedule: React.FC = () => {
                           <div className="timeline-date">
                             {slotDate.getDate()}/{slotDate.getMonth() + 1}
                           </div>
-                          <div className="timeline-day">{dayNameEn}</div>
+                          <div className="timeline-day">{dayNameVi}</div>
                         </div>
                       )}
                       {/* Slot Time */}
                       <div>
-                        <div className="timeline-slot">Tiết: {index + 1}</div>
+                        <div className="timeline-slot">Tiết {slotNumberInDay}</div>
                         <div className="timeline-time">{slot.startTime} - {slot.endTime}</div>
                       </div>
                     </div>

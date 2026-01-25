@@ -39,7 +39,7 @@ const GenerateAttendance: React.FC = () => {
       const res = await api.get("/lecturer/slots/upcoming");
       setSlots(res.data.data || []);
     } catch (err) {
-      console.error(err);
+      // Lỗi khi tải danh sách slot
     }
   };
 

@@ -53,7 +53,7 @@ const StudentSchedule: React.FC = () => {
       setSlots(slotsRes.data.data || []);
       setSchedules(schedulesRes.data.data || []);
     } catch (err) {
-      console.error(err);
+      // Lỗi khi tải lịch học
     } finally {
       setLoading(false);
     }
