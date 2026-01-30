@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import Footer from "../../components/Footer";
@@ -10,7 +10,7 @@ const TOTAL_SAMPLES = 10;
 const MODEL_URL = "/models";
 
 export default function FaceRegister() {
-  const { user, setHasFaceData } = useAuth();
+  const { setHasFaceData } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 

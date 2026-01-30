@@ -4,7 +4,7 @@ import Footer from "../../components/Footer";
 import StudentHeader from "../../components/StudentHeader";
 
 const StudentReport: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   const [filter, setFilter] = useState("all");
 
   const records = [

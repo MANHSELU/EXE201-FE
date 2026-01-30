@@ -6,7 +6,7 @@ import Footer from "../../components/Footer";
 import LecturerHeader from "../../components/LecturerHeader";
 
 const GenerateAttendance: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   const [searchParams] = useSearchParams();
   const slotId = searchParams.get("slotId");
 

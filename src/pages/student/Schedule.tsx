@@ -33,7 +33,7 @@ interface AttendanceRecord {
 }
 
 const StudentSchedule: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   const [slots, setSlots] = useState<ScheduleSlot[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<Map<string, AttendanceRecord>>(new Map());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());

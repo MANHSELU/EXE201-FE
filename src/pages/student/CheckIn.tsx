@@ -29,7 +29,7 @@ interface SlotInfo {
 }
 
 const StudentCheckIn: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState<CheckInStep>("loading");

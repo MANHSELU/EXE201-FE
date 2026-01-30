@@ -4,7 +4,7 @@ import Footer from "../../components/Footer";
 import LecturerHeader from "../../components/LecturerHeader";
 
 const LecturerStatistics: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   const [selectedDate, setSelectedDate] = useState("10/24/2023");
 
   const students = [

@@ -6,7 +6,7 @@ import Footer from "../../components/Footer";
 import StudentHeader from "../../components/StudentHeader";
 
 const StudentAttendance: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 

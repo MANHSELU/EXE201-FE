@@ -34,7 +34,7 @@ interface StudentAttendance {
 }
 
 const LecturerReports: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   
   // Filters
   const [classes, setClasses] = useState<ClassInfo[]>([]);
