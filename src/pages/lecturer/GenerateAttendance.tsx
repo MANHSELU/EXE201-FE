@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import Footer from "../../components/Footer";
+import LecturerHeader from "../../components/LecturerHeader";
 
 const GenerateAttendance: React.FC = () => {
   const { user } = useAuth();
@@ -89,158 +90,10 @@ const GenerateAttendance: React.FC = () => {
 
       <style>{`
         body { font-family: 'Poppins', sans-serif; }
-        .header-nav {
-          background: white;
-          border-bottom: 1px solid #E5E7EB;
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          padding: 0 1.5rem;
-        }
-        .header-content {
-          max-width: 1200px;
-          margin: 0 auto;
-          height: 64px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .logo-section {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-        .logo-icon {
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #FF7043, #FFAB91);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 12px rgba(255,112,67,0.3);
-        }
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1F2937;
-        }
-        .nav-links {
-          display: flex;
-          align-items: center;
-          gap: 2rem;
-        }
-        .nav-link {
-          font-size: 14px;
-          font-weight: 500;
-          color: #6B7280;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-        .nav-link:hover {
-          color: #FF7043;
-        }
-        .nav-link.active {
-          color: #FF7043;
-          font-weight: 600;
-        }
-        .user-section {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-        .notification-btn {
-          position: relative;
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .notification-btn:hover {
-          background: #F3F4F6;
-        }
-        .notification-dot {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          width: 8px;
-          height: 8px;
-          background: #FF7043;
-          border-radius: 50%;
-        }
-        .user-info {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding-left: 1rem;
-          border-left: 1px solid #E5E7EB;
-        }
-        .user-details {
-          text-align: right;
-        }
-        .user-name {
-          font-size: 14px;
-          font-weight: 600;
-          color: #1F2937;
-        }
-        .user-role {
-          font-size: 12px;
-          color: #6B7280;
-        }
-        .user-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #FF7043, #FFAB91);
-          overflow: hidden;
-        }
-        .user-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
       `}</style>
 
       <div style={{ minHeight: '100vh', backgroundColor: '#FFF8F5' }}>
-        {/* Header Navigation */}
-        <header className="header-nav">
-          <div className="header-content">
-            <div className="logo-section">
-              <div className="logo-icon">
-                <span className="material-icons-outlined" style={{ color: 'white', fontSize: '24px' }}>school</span>
-              </div>
-              <span className="logo-text">Smart Attendance</span>
-            </div>
-
-            <nav className="nav-links">
-              <a href="/lecturer/dashboard" className="nav-link">Dashboard</a>
-              <a href="/lecturer/schedule" className="nav-link">Schedule</a>
-              <a href="/lecturer/reports" className="nav-link">Attendance Report</a>
-            </nav>
-
-            <div className="user-section">
-              <button className="notification-btn">
-                <span className="material-icons-outlined" style={{ color: '#6B7280', fontSize: '24px' }}>notifications</span>
-                <span className="notification-dot"></span>
-              </button>
-              <div className="user-info">
-                <div className="user-details">
-                  <p className="user-name">{user?.fullName || 'Lecturer'}</p>
-                  <p className="user-role">Lecturer</p>
-                </div>
-                <div className="user-avatar">
-                  <img src="https://i.pravatar.cc/150?img=12" alt="Avatar" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+        <LecturerHeader />
 
         {/* Main */}
         <main className="max-w-6xl mx-auto px-8 py-12">

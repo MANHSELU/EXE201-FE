@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Footer from "../../components/Footer";
+import StudentHeader from "../../components/StudentHeader";
 
 const StudentReport: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [filter, setFilter] = useState("all");
 
   const records = [
@@ -53,31 +54,7 @@ const StudentReport: React.FC = () => {
       />
 
       <div className="min-h-screen bg-gray-50">
-        {/* Nav */}
-        <nav className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="material-icons-outlined text-white">school</span>
-              </div>
-              <div className="flex items-center space-x-6">
-                <a href="/student/dashboard" className="text-gray-600 hover:text-orange-500">Trang chủ</a>
-                <a href="/student/schedule" className="text-gray-600 hover:text-orange-500">Lịch học</a>
-                <a href="/student/report" className="text-orange-500 border-b-2 border-orange-500 py-5">Báo cáo</a>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <span className="text-sm font-semibold">{user?.fullName}</span>
-              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                {user?.fullName?.charAt(0)}
-              </div>
-              <button onClick={logout}>
-                <span className="material-icons-outlined text-gray-400">logout</span>
-              </button>
-            </div>
-          </div>
-        </nav>
+        <StudentHeader />
 
         {/* Main */}
         <main className="max-w-7xl mx-auto px-6 py-8">

@@ -7,6 +7,8 @@ import Login from "./pages/Login";
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentSchedule from "./pages/student/Schedule";
 import StudentAttendance from "./pages/student/Attendance";
+import StudentCheckIn from "./pages/student/CheckIn";
+import StudentFaceRegister from "./pages/student/FaceRegister";
 import StudentReport from "./pages/student/Report";
 import LecturerDashboard from "./pages/lecturer/Dashboard";
 import LecturerSchedule from "./pages/lecturer/Schedule";
@@ -72,6 +74,22 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["STUDENT"]}>
                 <StudentAttendance />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/checkin"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <StudentCheckIn />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/face-register"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <StudentFaceRegister />
               </ProtectedRoute>
             }
           />

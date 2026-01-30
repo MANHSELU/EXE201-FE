@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Footer from "../../components/Footer";
+import StudentHeader from "../../components/StudentHeader";
 
 interface AttendanceStats {
   subject: string;
@@ -9,7 +10,7 @@ interface AttendanceStats {
 }
 
 const StudentDashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [stats] = useState<AttendanceStats[]>([
     { subject: "Vật Lý", present: 9, total: 10 },
     { subject: "Toán Học", present: 8, total: 10 },
@@ -29,69 +30,7 @@ const StudentDashboard: React.FC = () => {
       />
 
       <div className="min-h-screen bg-gray-50">
-        {/* Navigation */}
-        <nav className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="material-icons-outlined text-white">school</span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-6">
-                <a
-                  href="/student/dashboard"
-                  className="flex items-center space-x-2 text-orange-500 border-b-2 border-orange-500 py-5"
-                >
-                  <span className="material-icons-outlined text-[20px]">home</span>
-                  <span className="font-medium">Trang chủ</span>
-                </a>
-                <a
-                  href="/student/schedule"
-                  className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 transition-colors"
-                >
-                  <span className="material-icons-outlined text-[20px]">calendar_today</span>
-                  <span className="font-medium">Lịch học</span>
-                </a>
-                <a
-                  href="/student/report"
-                  className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 transition-colors"
-                >
-                  <span className="material-icons-outlined text-[20px]">assignment_turned_in</span>
-                  <span className="font-medium">Báo cáo</span>
-                </a>
-                <a
-                  href="#"
-                  className="flex items-center space-x-2 text-gray-600 hover:text-orange-500 transition-colors"
-                >
-                  <span className="material-icons-outlined text-[20px]">notifications</span>
-                  <span className="font-medium">Thông báo</span>
-                </a>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
-                <div className="text-right">
-                  <p className="text-sm font-semibold">{user?.fullName || "Nguyễn Văn A"}</p>
-                  <p className="text-[11px] text-gray-500 uppercase tracking-wider">
-                    {user?.role || "Sinh viên"}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                  {user?.fullName?.charAt(0) || "N"}
-                </div>
-                <button
-                  onClick={logout}
-                  className="p-2 text-gray-400 hover:text-gray-600"
-                >
-                  <span className="material-icons-outlined">logout</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </nav>
+        <StudentHeader />
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-6 py-8">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Footer from "../../components/Footer";
+import LecturerHeader from "../../components/LecturerHeader";
 
 interface ClassInfo {
   _id: string;
@@ -191,62 +192,7 @@ const LecturerReports: React.FC = () => {
       `}</style>
 
       <div className="report-container">
-        {/* Header */}
-        <header style={{
-          background: 'white',
-          borderBottom: '1px solid #E5E7EB',
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-          padding: '0 1.5rem'
-        }}>
-          <div style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            height: '64px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                background: 'linear-gradient(135deg, #FF7043, #FFAB91)',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(255,112,67,0.3)'
-              }}>
-                <span className="material-icons-outlined" style={{ color: 'white', fontSize: '24px' }}>school</span>
-              </div>
-              <span style={{ fontSize: '18px', fontWeight: 700, color: '#1F2937' }}>Smart Attendance</span>
-            </div>
-
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-              <a href="/lecturer/dashboard" style={{ fontSize: '14px', fontWeight: 500, color: '#6B7280', textDecoration: 'none' }}>Trang chủ</a>
-              <a href="/lecturer/schedule" style={{ fontSize: '14px', fontWeight: 500, color: '#6B7280', textDecoration: 'none' }}>Lịch dạy</a>
-              <a href="/lecturer/reports" style={{ fontSize: '14px', fontWeight: 600, color: '#FF7043', textDecoration: 'none' }}>Báo cáo điểm danh</a>
-            </nav>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#1F2937', margin: 0 }}>{user?.fullName || 'Giảng viên'}</p>
-                <p style={{ fontSize: '12px', color: '#6B7280', margin: 0 }}>Giảng viên</p>
-              </div>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #FF7043, #FFAB91)',
-                overflow: 'hidden'
-              }}>
-                <img src="https://i.pravatar.cc/150?img=12" alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-            </div>
-          </div>
-        </header>
+        <LecturerHeader />
 
         {/* Main Content */}
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>

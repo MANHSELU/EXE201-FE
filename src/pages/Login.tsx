@@ -19,11 +19,22 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const { needsFaceRegister } = await login(email, password);
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
       
+      console.log("[Login] Role:", storedUser.role, "needsFaceRegister:", needsFaceRegister);
+      
       if (storedUser.role === "STUDENT") {
-        navigate("/student/dashboard");
+        // Kiểm tra nếu chưa có dữ liệu khuôn mặt -> redirect đến face-register
+        if (needsFaceRegister) {
+          console.log("[Login] Redirecting to face-register...");
+          navigate("/student/face-register", { 
+            state: { message: "Vui lòng đăng ký khuôn mặt để sử dụng hệ thống điểm danh" } 
+          });
+        } else {
+          console.log("[Login] Has face data, going to dashboard...");
+          navigate("/student/dashboard");
+        }
       } else if (storedUser.role === "LECTURER") {
         navigate("/lecturer/dashboard");
       }

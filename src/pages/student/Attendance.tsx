@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../services/api";
 import Footer from "../../components/Footer";
+import StudentHeader from "../../components/StudentHeader";
 
 const StudentAttendance: React.FC = () => {
   const { user } = useAuth();
@@ -87,35 +88,7 @@ const StudentAttendance: React.FC = () => {
       />
 
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
-        {/* Nav */}
-        <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 px-8 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="material-icons-outlined text-white text-2xl">school</span>
-              </div>
-              <span className="text-xl font-bold text-gray-800">SmartEdu</span>
-            </div>
-
-            <div className="flex items-center space-x-6 text-sm">
-              <a href="/student/dashboard" className="text-gray-600 hover:text-orange-500">Trang chủ</a>
-              <a href="/student/schedule" className="text-orange-500 font-medium">Lịch học</a>
-              <a href="/student/report" className="text-gray-600 hover:text-orange-500">Báo cáo điểm danh</a>
-              <div className="flex items-center space-x-3 pl-6 border-l border-gray-200">
-                <span className="material-icons-outlined text-gray-400">notifications</span>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-semibold">{user?.fullName}</span>
-                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
-                    {user?.fullName?.charAt(0) || "N"}
-                  </div>
-                </div>
-                <button className="p-1 hover:bg-gray-100 rounded-lg">
-                  <span className="material-icons-outlined text-gray-400">logout</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </nav>
+        <StudentHeader />
 
         {/* Main */}
         <main className="max-w-2xl mx-auto px-6 py-12">

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import Footer from "../../components/Footer";
+import LecturerHeader from "../../components/LecturerHeader";
 
 interface ScheduleSlot {
   _id: string;
@@ -399,123 +400,6 @@ const LecturerSchedule: React.FC = () => {
         .nav-btn:hover {
           background: #F3F4F6;
         }
-        /* Header Styles */
-        .header-nav {
-          background: white;
-          border-bottom: 1px solid #E5E7EB;
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          padding: 0 1.5rem;
-        }
-        .header-content {
-          max-width: 1200px;
-          margin: 0 auto;
-          height: 64px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .logo-section {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-        .logo-icon {
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #FF7043, #FFAB91);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 12px rgba(255,112,67,0.3);
-        }
-        .logo-text {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1F2937;
-        }
-        .nav-links {
-          display: flex;
-          align-items: center;
-          gap: 2rem;
-        }
-        .nav-link {
-          font-size: 14px;
-          font-weight: 500;
-          color: #6B7280;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-        .nav-link:hover {
-          color: #FF7043;
-        }
-        .nav-link.active {
-          color: #FF7043;
-          font-weight: 600;
-        }
-        .user-section {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-        .notification-btn {
-          position: relative;
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .notification-btn:hover {
-          background: #F3F4F6;
-        }
-        .notification-dot {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          width: 8px;
-          height: 8px;
-          background: #FF7043;
-          border-radius: 50%;
-        }
-        .user-info {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding-left: 1rem;
-          border-left: 1px solid #E5E7EB;
-        }
-        .user-details {
-          text-align: right;
-        }
-        .user-name {
-          font-size: 14px;
-          font-weight: 600;
-          color: #1F2937;
-        }
-        .user-role {
-          font-size: 12px;
-          color: #6B7280;
-        }
-        .user-avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #FF7043, #FFAB91);
-          overflow: hidden;
-        }
-        .user-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
         /* Day item selected state */
         .day-item.selected .day-date {
           color: #FF7043;
@@ -564,39 +448,7 @@ const LecturerSchedule: React.FC = () => {
         }
       `}</style>
 
-      {/* Header Navigation */}
-      <header className="header-nav">
-        <div className="header-content">
-          <div className="logo-section">
-            <div className="logo-icon">
-              <span className="material-icons-outlined" style={{ color: 'white', fontSize: '24px' }}>school</span>
-            </div>
-            <span className="logo-text">Smart Attendance</span>
-          </div>
-
-          <nav className="nav-links">
-            <a href="/lecturer/dashboard" className="nav-link">Trang chủ</a>
-            <a href="/lecturer/schedule" className="nav-link active">Lịch dạy</a>
-            <a href="/lecturer/reports" className="nav-link">Báo cáo điểm danh</a>
-          </nav>
-
-          <div className="user-section">
-            <button className="notification-btn">
-              <span className="material-icons-outlined" style={{ color: '#6B7280', fontSize: '24px' }}>notifications</span>
-              <span className="notification-dot"></span>
-            </button>
-            <div className="user-info">
-              <div className="user-details">
-                <p className="user-name">{user?.fullName || 'Lecturer'}</p>
-                <p className="user-role">Lecturer</p>
-              </div>
-              <div className="user-avatar">
-                <img src="https://i.pravatar.cc/150?img=12" alt="Avatar" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <LecturerHeader />
 
       <div className="schedule-container">
         {/* Main Container */}
@@ -698,16 +550,31 @@ const LecturerSchedule: React.FC = () => {
               </div>
             ) : (
               filteredSlots.map((slot, index) => {
-                const now = new Date();
+                // Lấy giờ hiện tại (UTC) và offset Hà Nội (UTC+7)
+                const nowUTC = new Date();
+                const hanoiOffset = 7 * 60; // UTC+7 in minutes
+                
                 const slotDate = new Date(slot.date);
+                // Chuyển slotDate sang giờ Hà Nội
+                const slotDateHanoi = new Date(slotDate.getTime() + (hanoiOffset + slotDate.getTimezoneOffset()) * 60000);
                 
-                // Lấy chuỗi ngày (YYYY-MM-DD) từ slot.date
-                const dateStr = slot.date.split('T')[0];
-                const slotStart = new Date(`${dateStr}T${slot.startTime}:00`);
-                const slotEnd = new Date(`${dateStr}T${slot.endTime}:00`);
+                const year = slotDateHanoi.getFullYear();
+                const month = slotDateHanoi.getMonth();
+                const day = slotDateHanoi.getDate();
                 
-                const isHappening = now >= slotStart && now <= slotEnd;
-                const isPast = now > slotEnd;
+                // Parse startTime và endTime (format "HH:MM")
+                const [startHour, startMin] = slot.startTime.split(':').map(Number);
+                const [endHour, endMin] = slot.endTime.split(':').map(Number);
+                
+                // Tạo slotStart và slotEnd theo giờ Hà Nội
+                const slotStart = new Date(year, month, day, startHour, startMin, 0);
+                const slotEnd = new Date(year, month, day, endHour, endMin, 0);
+                // Chuyển về UTC để so sánh chính xác
+                const slotStartUTC = new Date(slotStart.getTime() - (hanoiOffset + slotStart.getTimezoneOffset()) * 60000);
+                const slotEndUTC = new Date(slotEnd.getTime() - (hanoiOffset + slotEnd.getTimezoneOffset()) * 60000);
+                
+                const isHappening = nowUTC >= slotStartUTC && nowUTC <= slotEndUTC;
+                const isPast = nowUTC > slotEndUTC;
                 const dayNameVi = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"][slotDate.getDay()];
                 
                 // Tính số tiết trong ngày (đánh số theo thời gian)
@@ -779,10 +646,10 @@ const LecturerSchedule: React.FC = () => {
                             // Check status từ slot
                             const isAttended = slot.status === "ATTENDED" || slot.status === "COMPLETED";
                             
-                            // Check thời gian
-                            const isNotYet = now < slotStart;
-                            const isActive = now >= slotStart && now <= slotEnd;
-                            const isEnded = now > slotEnd;
+                            // Check thời gian (so sánh UTC)
+                            const isNotYet = nowUTC < slotStartUTC;
+                            const isActive = nowUTC >= slotStartUTC && nowUTC <= slotEndUTC;
+                            const isEnded = nowUTC > slotEndUTC;
 
                             // 1. Đã điểm danh rồi (ưu tiên cao nhất)
                             if (isAttended) {
