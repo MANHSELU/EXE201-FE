@@ -15,6 +15,16 @@ import LecturerSchedule from "./pages/lecturer/Schedule";
 import GenerateAttendance from "./pages/lecturer/GenerateAttendance";
 import LecturerStatistics from "./pages/lecturer/Statistics";
 import LecturerReports from "./pages/lecturer/Reports";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminSubjects from "./pages/admin/Subjects";
+import AdminClasses from "./pages/admin/Classes";
+import AdminRooms from "./pages/admin/Rooms";
+import AdminScheduleSlots from "./pages/admin/ScheduleSlots";
+import AdminClassStudents from "./pages/admin/ClassStudents";
+import AdminTeachingSchedules from "./pages/admin/TeachingSchedules";
+import AdminSemesters from "./pages/admin/Semesters";
+import AdminUsers from "./pages/admin/Users";
+import AdminCreateUser from "./pages/admin/CreateUser";
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -140,6 +150,88 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["LECTURER"]}>
                 <LecturerStatistics />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Routes */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/subjects"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminSubjects />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/classes"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminClasses />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/rooms"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminRooms />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/slots"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminScheduleSlots />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/class-students"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminClassStudents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/teaching-schedules"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminTeachingSchedules />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/semesters"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminSemesters />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users/create"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminCreateUser />
               </ProtectedRoute>
             }
           />

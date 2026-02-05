@@ -103,6 +103,33 @@ const STUDENT_HEADER_CSS = `
   .student-logout-btn:hover {
     color: #EF4444;
   }
+  .student-notification-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #6B7280;
+  }
+  .student-notification-btn:hover {
+    background: #F3F4F6;
+    color: #FF7043;
+  }
+  .student-notification-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: #FF7043;
+    border-radius: 50%;
+    border: 2px solid white;
+  }
 `;
 
 export default function StudentHeader() {
@@ -130,6 +157,10 @@ export default function StudentHeader() {
           </nav>
 
           <div className="student-user-section">
+            <button className="student-notification-btn" type="button" aria-label="Thông báo">
+              <span className="material-icons-outlined" style={{ fontSize: "24px" }}>notifications</span>
+              <span className="student-notification-dot" aria-hidden />
+            </button>
             <div className="student-user-info">
               <div className="student-user-details">
                 <p className="student-user-name">{user?.fullName || "Sinh viên"}</p>

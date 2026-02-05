@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Login: React.FC = () => {
-  const [role, setRole] = useState<"STUDENT" | "LECTURER">("STUDENT");
+  const [role, setRole] = useState<"STUDENT" | "LECTURER" | "ADMIN">("STUDENT");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +37,8 @@ const Login: React.FC = () => {
         }
       } else if (storedUser.role === "LECTURER") {
         navigate("/lecturer/dashboard");
+      } else if (storedUser.role === "ADMIN") {
+        navigate("/admin/dashboard");
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Đăng nhập thất bại");
@@ -104,11 +106,12 @@ const Login: React.FC = () => {
                   <div className="relative">
                     <select
                       value={role}
-                      onChange={(e) => setRole(e.target.value as "STUDENT" | "LECTURER")}
+                      onChange={(e) => setRole(e.target.value as "STUDENT" | "LECTURER" | "ADMIN")}
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent appearance-none"
                     >
                       <option value="STUDENT">Học sinh / Sinh viên</option>
                       <option value="LECTURER">Giảng viên</option>
+                      <option value="ADMIN">Quản trị viên</option>
                     </select>
                     <span className="material-icons-outlined absolute right-3 top-3 text-gray-400 pointer-events-none">
                       expand_more
