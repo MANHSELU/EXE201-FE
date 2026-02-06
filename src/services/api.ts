@@ -21,14 +21,19 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor xử lý lỗi 401 (logout)
+// Interceptor xử lý lỗi 401 (logout) - nhưng KHÔNG redirect nếu đang ở trang login
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+      const isLoginRequest =
+        error.config?.url?.includes("/login") &&
+        error.config?.method?.toLowerCase() === "post";
+      if (!isLoginRequest) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

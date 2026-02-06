@@ -21,11 +21,11 @@ const Login: React.FC = () => {
     try {
       const { needsFaceRegister } = await login(email, password);
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const userRole = (storedUser.role || "").toUpperCase();
       
-      console.log("[Login] Role:", storedUser.role, "needsFaceRegister:", needsFaceRegister);
+      console.log("[Login] Role:", userRole, "needsFaceRegister:", needsFaceRegister);
       
-      if (storedUser.role === "STUDENT") {
-        // Kiểm tra nếu chưa có dữ liệu khuôn mặt -> redirect đến face-register
+      if (userRole === "STUDENT") {
         if (needsFaceRegister) {
           console.log("[Login] Redirecting to face-register...");
           navigate("/student/face-register", { 
@@ -35,13 +35,22 @@ const Login: React.FC = () => {
           console.log("[Login] Has face data, going to dashboard...");
           navigate("/student/dashboard");
         }
-      } else if (storedUser.role === "LECTURER") {
+      } else if (userRole === "LECTURER") {
         navigate("/lecturer/dashboard");
-      } else if (storedUser.role === "ADMIN") {
+      } else if (userRole === "ADMIN") {
         navigate("/admin/dashboard");
+      } else {
+        setError("Vai trò không hợp lệ. Liên hệ quản trị viên.");
+        setLoading(false);
+        return;
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Đăng nhập thất bại");
+      const msg = err.response?.data?.message ?? err.message;
+      if (err.code === "ERR_NETWORK" || err.message?.includes("Network Error")) {
+        setError("Không kết nối được server. Kiểm tra backend đã chạy chưa và đúng địa chỉ trong file .env (VITE_API_URL).");
+      } else {
+        setError(msg || "Đăng nhập thất bại");
+      }
     } finally {
       setLoading(false);
     }

@@ -47,7 +47,8 @@ const ProtectedRoute: React.FC<{
     return <Navigate to="/login" replace />;
   }
 
-  if (!allowedRoles.includes(user.role)) {
+  const userRole = (user.role || "").toUpperCase();
+  if (!allowedRoles.map((r) => r.toUpperCase()).includes(userRole)) {
     return <Navigate to="/login" replace />;
   }
 

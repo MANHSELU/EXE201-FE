@@ -80,7 +80,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<{ needsFaceRegister: boolean }> => {
     const response = await api.post("/login", { email, password });
-    const { token: newToken, user: newUser } = response.data;
+    // Backend có thể trả { token, user } hoặc { data: { token, user } }
+    const data = response.data?.data ?? response.data;
+    const newToken = data.token;
+    const rawUser = data.user;
+
+    if (!newToken || !rawUser) {
+      throw new Error("Phản hồi đăng nhập không hợp lệ. Kiểm tra backend đang chạy và trả về đúng format.");
+    }
+
+    // Normalize role to uppercase để tránh lỗi case-sensitivity
+    const role = (rawUser.role || "").toUpperCase();
+    const newUser = {
+      ...rawUser,
+      id: rawUser.id ?? rawUser._id,
+      role: role as "ADMIN" | "LECTURER" | "STUDENT",
+    };
 
     localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));

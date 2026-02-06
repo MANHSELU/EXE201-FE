@@ -674,11 +674,11 @@ const StudentSchedule: React.FC = () => {
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
                           {(() => {
                             const attendanceStatus = getAttendanceStatus(slot._id);
-                            const isAttended = attendanceStatus === "PRESENT";
-                            const isAbsent = attendanceStatus === "ABSENT";
+                            const isAttended = attendanceStatus === "PRESENT" || attendanceStatus === "LATE";
                             const isNotYet = nowUTC < slotStartUTC;
                             const isActive = nowUTC >= slotStartUTC && nowUTC <= slotEndUTC;
                             const isEnded = nowUTC > slotEndUTC;
+                            const showAbsent = isEnded && !isAttended;
 
                             if (isAttended) {
                               return (
@@ -690,24 +690,13 @@ const StudentSchedule: React.FC = () => {
                                 </button>
                               );
                             }
-                            
-                            if (isAbsent) {
+
+                            if (showAbsent) {
                               return (
                                 <button className="checkin-btn absent" disabled>
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span className="material-icons-outlined" style={{ fontSize: '18px' }}>cancel</span>
                                     Vắng mặt
-                                  </span>
-                                </button>
-                              );
-                            }
-
-                            if (isEnded) {
-                              return (
-                                <button className="checkin-btn ended" disabled>
-                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <span className="material-icons-outlined" style={{ fontSize: '18px' }}>event_busy</span>
-                                    Đã kết thúc
                                   </span>
                                 </button>
                               );
@@ -724,7 +713,7 @@ const StudentSchedule: React.FC = () => {
                                 >
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span className="material-icons-outlined" style={{ fontSize: '18px' }}>qr_code_scanner</span>
-                                    Điểm danh ngay
+                                    Điểm danh
                                   </span>
                                 </button>
                               );

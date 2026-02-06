@@ -323,17 +323,14 @@ const StudentDashboard: React.FC = () => {
                           <h3 className="font-semibold text-gray-800 mt-3 text-sm text-center line-clamp-2 leading-tight">
                             {item.subjectName}
                           </h3>
+                          <p className="mt-1.5 text-xs text-gray-600 text-center">
+                            Bạn đã nghỉ <span className="font-semibold">{item.absentCount ?? 0}</span> trên <span className="font-semibold">{total}</span> buổi học.
+                          </p>
                         </div>
                       );
                     })}
                   </div>
 
-                  {bySubject.some((s) => s.allowedAbsent > 0 && s.absentCount >= s.allowedAbsent) && (
-                    <div className="mt-6 flex items-center space-x-2 text-sm text-red-600">
-                      <span className="material-icons-outlined text-lg">error_outline</span>
-                      <span className="font-medium">Một số môn đã vượt hoặc sắp hết lượt nghỉ. Xem báo cáo để biết chi tiết.</span>
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -392,7 +389,7 @@ const StudentDashboard: React.FC = () => {
                         </span>
                         <div className="min-w-0 flex-1 space-y-2">
                           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                            Cảnh báo điểm danh
+                            {showWarning ? "Bạn đã nghỉ quá nhiều ở một số môn. Xem báo cáo để biết chi tiết." : "Cảnh báo điểm danh"}
                           </p>
                           {!selectedSemesterId && (
                             <p className="text-sm text-gray-600 leading-relaxed">Chọn kì học ở trên để xem cảnh báo.</p>
