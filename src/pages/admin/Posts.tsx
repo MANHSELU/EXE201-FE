@@ -81,10 +81,6 @@ const AdminPosts: React.FC = () => {
     try { await api.delete(`/admin/posts/${id}`); fetchPosts(filterStatus); } catch { /**/ } finally { setProcessing(""); }
   };
 
-  const counts = {
-    PENDING: posts.filter ? undefined : 0,
-  };
-  void counts;
 
   return (
     <AdminLayout title="" breadcrumb={[{ path: "/admin/dashboard", label: "Trang chủ" }, { label: "Kiểm duyệt bài viết" }]}>

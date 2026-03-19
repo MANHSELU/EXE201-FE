@@ -201,7 +201,7 @@ interface AdminLayoutProps {
   breadcrumb?: { label: string; path?: string }[];
 }
 
-export default function AdminLayout({ children, title, breadcrumb }: AdminLayoutProps) {
+export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
