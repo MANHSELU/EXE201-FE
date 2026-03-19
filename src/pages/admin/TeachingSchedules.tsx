@@ -5,10 +5,6 @@ import AdminLayout from "../../components/AdminLayout";
 
 const DAYS = ["", "Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const DAYS_SHORT = ["", "CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-const DAY_COLORS: Record<number, string> = {
-  1: "bg-red-100 text-red-600", 2: "bg-blue-100 text-blue-600", 3: "bg-green-100 text-green-600",
-  4: "bg-purple-100 text-purple-600", 5: "bg-amber-100 text-amber-600", 6: "bg-pink-100 text-pink-600", 7: "bg-indigo-100 text-indigo-600",
-};
 const IC = "material-icons-outlined";
 
 interface Subject { _id: string; code: string; name: string; }
