@@ -110,16 +110,6 @@ const AdminTeachingSchedules: React.FC = () => {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Xóa lịch dạy này?")) return;
-    try { await api.delete(`/admin/teaching-schedules/${id}`); fetchList(); } catch { /**/ }
-  };
-
-  const openEdit = (ts: TeachingSchedule) => {
-    setEditItem(ts);
-    setEditData({ teacherId: ts.teacherId?._id || "", subjectId: ts.subjectId?._id || "", dayOfWeek: ts.dayOfWeek, startTime: ts.startTime, endTime: ts.endTime });
-    setEditError("");
-  };
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault(); if (!editItem) return;

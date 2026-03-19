@@ -40,7 +40,7 @@ const LecturerReports: React.FC = () => {
 
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [, setSelectedSubject] = useState<string>("");
   const [filterDate, setFilterDate] = useState<string>("");
 
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
