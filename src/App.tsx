@@ -4,13 +4,14 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Pages
 import Login from "./pages/Login";
-import StudentDashboard from "./pages/student/Dashboard";
+import StudentFeed from "./pages/student/Feed";
 import StudentSchedule from "./pages/student/Schedule";
 import StudentAttendance from "./pages/student/Attendance";
 import StudentCheckIn from "./pages/student/CheckIn";
 import StudentFaceRegister from "./pages/student/FaceRegister";
 import StudentReport from "./pages/student/Report";
-import LecturerDashboard from "./pages/lecturer/Dashboard";
+import StudentLeaveRequest from "./pages/student/LeaveRequest";
+import LecturerFeed from "./pages/lecturer/Feed";
 import LecturerSchedule from "./pages/lecturer/Schedule";
 import GenerateAttendance from "./pages/lecturer/GenerateAttendance";
 import LecturerStatistics from "./pages/lecturer/Statistics";
@@ -25,6 +26,7 @@ import AdminTeachingSchedules from "./pages/admin/TeachingSchedules";
 import AdminSemesters from "./pages/admin/Semesters";
 import AdminUsers from "./pages/admin/Users";
 import AdminCreateUser from "./pages/admin/CreateUser";
+import AdminPosts from "./pages/admin/Posts";
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -68,7 +70,7 @@ function App() {
             path="/student/dashboard"
             element={
               <ProtectedRoute allowedRoles={["STUDENT"]}>
-                <StudentDashboard />
+                <StudentFeed />
               </ProtectedRoute>
             }
           />
@@ -112,13 +114,21 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/student/leave-request"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <StudentLeaveRequest />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Lecturer Routes */}
           <Route
             path="/lecturer/dashboard"
             element={
               <ProtectedRoute allowedRoles={["LECTURER"]}>
-                <LecturerDashboard />
+                <LecturerFeed />
               </ProtectedRoute>
             }
           />
@@ -233,6 +243,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["ADMIN"]}>
                 <AdminCreateUser />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/posts"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <AdminPosts />
               </ProtectedRoute>
             }
           />

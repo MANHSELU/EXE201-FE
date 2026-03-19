@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
 import AdminLayout from "../../components/AdminLayout";
-import Footer from "../../components/Footer";
 
 interface ClassItem {
   _id: string;
@@ -171,7 +170,6 @@ const AdminClassStudents: React.FC = () => {
               </div>
             </>
           )}
-      <Footer />
     </AdminLayout>
   );
 };

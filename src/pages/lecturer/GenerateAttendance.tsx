@@ -15,6 +15,7 @@ const GenerateAttendance: React.FC = () => {
   const [attendanceCode, setAttendanceCode] = useState("");
   const [, setSessionId] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
+  const [endTime, setEndTime] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
   const DURATION_MINUTES = 5; // Fixed 5 minutes
 
@@ -29,11 +30,21 @@ const GenerateAttendance: React.FC = () => {
   }, [slotId]);
 
   useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
+    if (endTime) {
+      const timer = setInterval(() => {
+        const now = new Date();
+        const remaining = Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / 1000));
+        setTimeLeft(remaining);
+        
+        // Stop timer khi còn 0 giây
+        if (remaining === 0) {
+          clearInterval(timer);
+        }
+      }, 1000);
+      
+      return () => clearInterval(timer);
     }
-  }, [timeLeft]);
+  }, [endTime]);
 
   const fetchSlots = async () => {
     try {
@@ -46,7 +57,7 @@ const GenerateAttendance: React.FC = () => {
 
   const handleGenerateCode = async () => {
     if (!selectedSlot) {
-      alert("Vui lòng chọn lớp học");
+      alert("Không thể tạo mã. Vui lòng quay lại và chọn lớp học từ lịch dạy");
       return;
     }
 
@@ -56,10 +67,26 @@ const GenerateAttendance: React.FC = () => {
         slotId: selectedSlot,
       });
 
-      const { code, attendanceSessionId } = res.data.data;
+      const { code, attendanceSessionId, endTime: backendEndTime } = res.data.data;
       setAttendanceCode(code);
       setSessionId(attendanceSessionId);
-      setTimeLeft(DURATION_MINUTES * 60);
+      
+      // Chuyển endTime từ string sang Date object
+      if (!backendEndTime) {
+        console.warn("Backend did not return endTime. Using 5 minutes as fallback.");
+        const now = new Date();
+        const expiryDate = new Date(now.getTime() + 5 * 60 * 1000);
+        setEndTime(expiryDate);
+        setTimeLeft(300);
+      } else {
+        const expiryDate = new Date(backendEndTime);
+        setEndTime(expiryDate);
+        
+        // Tính timeLeft ngay khi nhận response
+        const now = new Date();
+        const remaining = Math.max(0, Math.floor((expiryDate.getTime() - now.getTime()) / 1000));
+        setTimeLeft(remaining);
+      }
     } catch (err: any) {
       alert(err.response?.data?.message || "Tạo mã thất bại");
     } finally {
@@ -72,8 +99,12 @@ const GenerateAttendance: React.FC = () => {
   void _selectedSlotData; // Suppress unused warning
 
   const formatTime = (seconds: number) => {
+    // Handle invalid input
+    if (isNaN(seconds) || seconds < 0) {
+      return "00:00";
+    }
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
@@ -96,48 +127,74 @@ const GenerateAttendance: React.FC = () => {
         <LecturerHeader />
 
         {/* Main */}
-        <main className="max-w-6xl mx-auto px-8 py-12">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-3">Generate Attendance Code</h1>
-            <p className="text-gray-500">Select a class session to create a unique check-in code for your students.</p>
+        <main className="max-w-7xl mx-auto px-8 py-12">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-gray-800 mb-3">Tạo mã điểm danh cho buổi học</h1>
+            <p className="text-gray-500">Tạo mã điểm danh cho học sinh để điểm danh cho buổi học</p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Left Panel - Settings */}
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* Left Panel - Class Info */}
             <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8">
               <h3 className="font-bold text-gray-800 mb-6 flex items-center space-x-2">
                 <span className="material-icons-outlined text-orange-500">school</span>
-                <span>Select Class</span>
+                <span>Thông tin lớp</span>
               </h3>
 
-              <select
-                value={selectedSlot}
-                onChange={(e) => setSelectedSlot(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 mb-6"
-              >
-                <option value="">-- Chọn lớp học --</option>
-                {slots.map((slot) => (
-                  <option key={slot._id} value={slot._id}>
-                    {slot.subjectId.code} - {slot.subjectId.name} ({slot.startTime})
-                  </option>
-                ))}
-              </select>
-
-              <button
-                onClick={handleGenerateCode}
-                disabled={loading || !selectedSlot}
-                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold py-4 rounded-2xl hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
-                <span className="material-icons-outlined">qr_code_2</span>
-                <span>{loading ? "Đang tạo..." : "Tạo mã điểm danh"}</span>
-              </button>
-
-              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start space-x-3">
-                <span className="material-icons-outlined text-blue-500 text-xl">info</span>
-                <p className="text-sm text-blue-700">
-                  <strong>Students must be connected to the university Wi-Fi network to check in successfully.</strong>
-                </p>
-              </div>
+              {selectedSlot && slots.length > 0 ? (
+                <>
+                  {(() => {
+                    const selectedSlotData = slots.find((s) => s._id === selectedSlot);
+                    if (!selectedSlotData) return null;
+                    
+                    return (
+                      <div className="space-y-4 mb-6">
+                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4">
+                          <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">Mã môn học</p>
+                          <p className="text-2xl font-bold text-orange-700">{selectedSlotData.subjectId.code}</p>
+                        </div>
+                        
+                        <div className="bg-gray-50 rounded-2xl p-4">
+                          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Tên môn học</p>
+                          <p className="text-lg font-semibold text-gray-800">{selectedSlotData.subjectId.name}</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-gray-50 rounded-xl p-3">
+                            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Lớp</p>
+                            <p className="text-base font-semibold text-gray-800">{selectedSlotData.classId.name}</p>
+                          </div>
+                          <div className="bg-gray-50 rounded-xl p-3">
+                            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Phòng</p>
+                            <p className="text-base font-semibold text-gray-800">{selectedSlotData.roomId.name}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-gray-50 rounded-2xl p-4">
+                          <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Thời gian</p>
+                          <p className="text-base font-semibold text-gray-800">
+                            {selectedSlotData.startTime} - {selectedSlotData.endTime}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  
+                  <button
+                    onClick={handleGenerateCode}
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold py-4 rounded-2xl hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    <span className="material-icons-outlined">qr_code_2</span>
+                    <span>{loading ? "Đang tạo..." : "Tạo mã điểm danh"}</span>
+                  </button>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <span className="material-icons-outlined text-4xl text-gray-300 mb-3">info</span>
+                  <p className="text-gray-500 font-medium">Vui lòng chọn lớp từ lịch dạy</p>
+                </div>
+              )}
             </div>
 
             {/* Right Panel - QR Display */}
@@ -147,7 +204,7 @@ const GenerateAttendance: React.FC = () => {
                   <div className="text-center mb-6">
                     <span className="inline-flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-600 rounded-full text-sm font-bold uppercase tracking-wide">
                       <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                      <span>● Live Session Active</span>
+                      <span>Mã điểm danh hiện tại</span>
                     </span>
                   </div>
 
@@ -227,31 +284,10 @@ const GenerateAttendance: React.FC = () => {
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center text-gray-400">
                   <span className="material-icons-outlined text-8xl mb-4">qr_code_2</span>
-                  <p className="text-lg font-semibold text-gray-600">No Active Session</p>
-                  <p className="text-sm">Generate a code to display QR</p>
+                  <p className="text-lg font-semibold text-gray-600">Chưa có hoạt động</p>
+                  <p className="text-sm">Tạo mã để hiển thị mã điểm danh</p>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Recent Sessions */}
-          <div className="mt-12 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h3 className="font-bold text-gray-800 mb-6 text-lg">RECENT SESSIONS</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-bold text-gray-800">CS101 - Intro to CS</h4>
-                  <span className="material-icons-outlined text-green-500">arrow_forward</span>
-                </div>
-                <p className="text-xs text-gray-500">Yesterday, 08:00 AM • 45/48 Present</p>
-              </div>
-              <div className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-bold text-gray-800">CS202 - Data Structures</h4>
-                  <span className="material-icons-outlined text-green-500">arrow_forward</span>
-                </div>
-                <p className="text-xs text-gray-500">Oct 24, 10:00 AM • 32/35 Present</p>
-              </div>
             </div>
           </div>
         </main>

@@ -1,5 +1,18 @@
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import { connectSocket } from "../services/socket";
+
+interface Notif {
+  _id: string;
+  fromUserId: { fullName: string; role: string };
+  type: string;
+  postId: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+}
 
 const STUDENT_HEADER_CSS = `
   .student-header-nav {
@@ -17,6 +30,25 @@ const STUDENT_HEADER_CSS = `
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+  .student-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+  .student-nav-link {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6B7280;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .student-nav-link:hover {
+    color: #FF7043;
+  }
+  .student-nav-link.active {
+    color: #FF7043;
+    font-weight: 600;
   }
   .student-logo-section {
     display: flex;
@@ -38,36 +70,50 @@ const STUDENT_HEADER_CSS = `
     font-weight: 700;
     color: #1F2937;
   }
-  .student-nav-links {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-  }
-  .student-nav-link {
-    font-size: 14px;
-    font-weight: 500;
-    color: #6B7280;
-    text-decoration: none;
-    transition: color 0.2s;
-  }
-  .student-nav-link:hover {
-    color: #FF7043;
-  }
-  .student-nav-link.active {
-    color: #FF7043;
-    font-weight: 600;
-  }
   .student-user-section {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+  }
+  .student-notification-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #6B7280;
+    transition: all 0.2s;
+  }
+  .student-notification-btn:hover {
+    background: #F3F4F6;
+    color: #FF7043;
+  }
+  .student-notification-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 18px;
+    height: 18px;
+    background: #EF4444;
+    border-radius: 9px;
+    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+    padding: 0 4px;
   }
   .student-user-info {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding-left: 1rem;
-    border-left: 1px solid #E5E7EB;
   }
   .student-user-details {
     text-align: right;
@@ -82,8 +128,8 @@ const STUDENT_HEADER_CSS = `
     color: #6B7280;
   }
   .student-user-avatar {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
     background: linear-gradient(135deg, #4F46E5, #818CF8);
     display: flex;
@@ -91,52 +137,143 @@ const STUDENT_HEADER_CSS = `
     justify-content: center;
     color: white;
     font-weight: 700;
+    font-size: 15px;
   }
   .student-logout-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    color: #6B7280;
-    transition: color 0.2s;
-  }
-  .student-logout-btn:hover {
-    color: #EF4444;
-  }
-  .student-notification-btn {
-    position: relative;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
     background: none;
-    border-radius: 10px;
+    border: none;
+    border-radius: 50%;
     cursor: pointer;
     color: #6B7280;
+    transition: all 0.2s;
   }
-  .student-notification-btn:hover {
-    background: #F3F4F6;
-    color: #FF7043;
+  .student-logout-btn:hover {
+    color: #EF4444;
+    background: #FEF2F2;
   }
-  .student-notification-dot {
+  .notif-dropdown {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 8px;
-    height: 8px;
-    background: #FF7043;
+    top: 48px;
+    right: 0;
+    width: 360px;
+    max-height: 420px;
+    overflow-y: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    border: 1px solid #E5E7EB;
+    z-index: 100;
+  }
+  .notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .notif-item:hover {
+    background: #F9FAFB;
+  }
+  .notif-item.unread {
+    background: #FFF7ED;
+  }
+  .notif-avatar {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    border: 2px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .notif-text {
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.4;
+    flex: 1;
+  }
+  .notif-time {
+    font-size: 11px;
+    color: #9CA3AF;
+    margin-top: 2px;
   }
 `;
+
+const NOTIF_ICON_MAP: Record<string, { icon: string; color: string }> = {
+  LIKE: { icon: "favorite", color: "#EF4444" },
+  COMMENT: { icon: "chat_bubble", color: "#3B82F6" },
+  POST_APPROVED: { icon: "check_circle", color: "#22C55E" },
+  POST_REJECTED: { icon: "cancel", color: "#EF4444" },
+};
+
+function timeAgo(date: string) {
+  const diff = (Date.now() - new Date(date).getTime()) / 1000;
+  if (diff < 60) return "vừa xong";
+  if (diff < 3600) return `${Math.floor(diff / 60)} phút`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} giờ`;
+  return `${Math.floor(diff / 86400)} ngày`;
+}
 
 export default function StudentHeader() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<Notif[]>([]);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname.startsWith(path);
+
+  const fetchUnread = async () => {
+    try { const res = await api.get("/student/notifications/unread-count"); setUnreadCount(res.data.count); } catch { /**/ }
+  };
+
+  const fetchNotifications = async () => {
+    try { const res = await api.get("/student/notifications"); setNotifications(res.data.data || []); } catch { /**/ }
+  };
+
+  const handleOpenNotifs = async () => {
+    if (!showNotifs) {
+      await fetchNotifications();
+      setShowNotifs(true);
+      // Mark as read
+      try { await api.patch("/student/notifications/mark-read"); setUnreadCount(0); } catch { /**/ }
+    } else {
+      setShowNotifs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnread();
+    if (user?.id) {
+      const socket = connectSocket(user.id);
+      socket.on("notification", () => {
+        setUnreadCount((c) => c + 1);
+        // If dropdown is open, refresh it
+        fetchNotifications();
+      });
+      return () => { socket.off("notification"); };
+    }
+  }, [user?.id]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setShowNotifs(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
     <>
@@ -157,18 +294,58 @@ export default function StudentHeader() {
           </nav>
 
           <div className="student-user-section">
-            <button className="student-notification-btn" type="button" aria-label="Thông báo">
-              <span className="material-icons-outlined" style={{ fontSize: "24px" }}>notifications</span>
-              <span className="student-notification-dot" aria-hidden />
-            </button>
+            <div style={{ position: "relative" }} ref={dropdownRef}>
+              <button className="student-notification-btn" type="button" aria-label="Thông báo" onClick={handleOpenNotifs}>
+                <span className="material-icons-outlined" style={{ fontSize: "22px" }}>notifications</span>
+                {unreadCount > 0 && <span className="student-notification-dot">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              </button>
+
+              {showNotifs && (
+                <div className="notif-dropdown">
+                  <div style={{ padding: "14px 16px", borderBottom: "1px solid #E5E7EB" }}>
+                    <p style={{ fontWeight: 700, fontSize: 17, color: "#111827" }}>Thông báo</p>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: "32px 16px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>
+                      Chưa có thông báo nào
+                    </div>
+                  ) : (
+                    notifications.map((n) => {
+                      const iconInfo = NOTIF_ICON_MAP[n.type] || { icon: "notifications", color: "#6B7280" };
+                      return (
+                        <div key={n._id} className={`notif-item ${!n.read ? "unread" : ""}`}
+                          onClick={() => {
+                            setShowNotifs(false);
+                            if (n.postId) {
+                              navigate(`/student/dashboard?postId=${n.postId}`);
+                              setTimeout(() => {
+                                const el = document.getElementById(`post-${n.postId}`);
+                                if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.style.boxShadow = "0 0 0 3px #FF7043"; setTimeout(() => { el.style.boxShadow = ""; }, 2000); }
+                              }, 500);
+                            }
+                          }}>
+                          <div className="notif-avatar" style={{ background: iconInfo.color }}>
+                            <span className="material-icons-outlined" style={{ fontSize: 20, color: "white" }}>{iconInfo.icon}</span>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <p className="notif-text">{n.message}</p>
+                            <p className="notif-time">{timeAgo(n.createdAt)}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
             <div className="student-user-info">
               <div className="student-user-details">
                 <p className="student-user-name">{user?.fullName || "Sinh viên"}</p>
                 <p className="student-user-role">Sinh viên</p>
               </div>
               <div className="student-user-avatar">{user?.fullName?.charAt(0) || "S"}</div>
-              <button onClick={logout} className="student-logout-btn" type="button">
-                <span className="material-icons-outlined">logout</span>
+              <button onClick={logout} className="student-logout-btn" type="button" title="Đăng xuất">
+                <span className="material-icons-outlined" style={{ fontSize: "20px" }}>logout</span>
               </button>
             </div>
           </div>

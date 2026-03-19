@@ -131,11 +131,16 @@ const SIDEBAR_CSS = `
   }
   .admin-main-wrap {
     margin-left: 260px;
+    width: calc(100vw - 260px);
     min-height: 100vh;
     background: #F9FAFB;
+    box-sizing: border-box;
   }
   .admin-main-content {
-    padding: 1.5rem 2rem 2rem;
+    padding: 4rem 2rem 2rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .admin-breadcrumb {
     font-size: 14px;
@@ -161,7 +166,7 @@ const navSections = [
   {
     title: "Lịch & Lớp",
     items: [
-      { path: "/admin/semesters", label: "Kì học", icon: "event" },
+      { path: "/admin/semesters", label: "Khóa đào tạo", icon: "event" },
       { path: "/admin/slots", label: "Lịch học (tiết)", icon: "calendar_today" },
       { path: "/admin/teaching-schedules", label: "Lịch dạy", icon: "schedule" },
       { path: "/admin/class-students", label: "Sinh viên theo lớp", icon: "group" },
@@ -180,6 +185,12 @@ const navSections = [
     items: [
       { path: "/admin/users", label: "Quản lý người dùng", icon: "people" },
       { path: "/admin/users/create", label: "Tạo tài khoản", icon: "person_add" },
+    ],
+  },
+  {
+    title: "Cộng đồng",
+    items: [
+      { path: "/admin/posts", label: "Kiểm duyệt bài viết", icon: "rate_review" },
     ],
   },
 ];
@@ -248,17 +259,6 @@ export default function AdminLayout({ children, title, breadcrumb }: AdminLayout
         </aside>
         <main className="admin-main-wrap">
           <div className="admin-main-content">
-            {breadcrumb && breadcrumb.length > 0 && (
-              <div className="admin-breadcrumb">
-                <Link to="/admin/dashboard">Admin</Link>
-                {breadcrumb.map((b, i) => (
-                  <span key={i}>
-                    <span className="mx-1">/</span>
-                    {b.path ? <Link to={b.path}>{b.label}</Link> : <span>{b.label}</span>}
-                  </span>
-                ))}
-              </div>
-            )}
             {title && <h1 className="text-2xl font-bold text-gray-800 mb-6">{title}</h1>}
             {children}
           </div>

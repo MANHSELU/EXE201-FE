@@ -10,9 +10,244 @@ const DEV_MODE = true;
 const MODEL_URL = "/models";
 
 // CONFIG
-const REQUIRED_MATCH_RATE = 0.7;  // 70% frame phải khớp
-const REQUIRED_FRAMES = 15;       // cần 15 lần verify
+const REQUIRED_MATCH_RATE = 0.6;  // 60% frame phải khớp
+const REQUIRED_FRAMES = 8;        // cần 8 lần verify (nhanh hơn)
 const MATCH_THRESHOLD = 0.5;      // Euclidean distance threshold
+const EAR_THRESHOLD = 0.25;
+const MAR_THRESHOLD = 0.55;
+const YAW_THRESHOLD = 0.13;
+const PITCH_THRESHOLD = 0.07;
+const CHALLENGE_TIMEOUT_MS = 30000;   // 30 giây mỗi challenge
+const DETECT_INTERVAL_MS = 150;       // Chạy AI detect mỗi 150ms (nhanh hơn để bắt blink)
+const FACE_LOST_TOLERANCE = 10;       // Cho phép mất mặt 10 lần detect liên tiếp (cần cho look up/down)
+const HOLD_FRAMES_REQUIRED = 12;      // Phải giữ hành động ~2 giây (12 frames x 150ms)
+
+// Anti-spoofing CONFIG (calibrated từ data thực tế)
+// Video/ảnh ĐT: movement=12-35, frameSim=0.42-0.76
+// Mặt thật:     movement=128-166, frameSim=0.07-0.19
+const SPOOF_MIN_MOVEMENT_VARIANCE = 60;    // Mặt thật > 100, fake < 40
+const SPOOF_MAX_FRAME_SIMILARITY = 0.35;   // Mặt thật < 0.2, fake > 0.4
+const SPOOF_MIN_BRIGHTNESS_VARIANCE = 0;   // Tắt (không phân biệt đủ rõ)
+const SPOOF_EDGE_SHARPNESS_THRESHOLD = 99; // Tắt (không phân biệt đủ rõ)
+const SPOOF_COLOR_INDEPENDENCE = 99;       // Tắt (không phân biệt đủ rõ)
+const SPOOF_HISTORY_FRAMES = 10;
+
+type LivenessChallenge =
+  | "BLINK"
+  | "TURN_LEFT"
+  | "TURN_RIGHT"
+  | "LOOK_UP"
+  | "LOOK_DOWN"
+  | "OPEN_MOUTH";
+
+const CHALLENGE_TEXT: Record<LivenessChallenge, string> = {
+  BLINK: "Chớp mắt 1 lần",
+  TURN_LEFT: "Quay đầu sang trái",
+  TURN_RIGHT: "Quay đầu sang phải",
+  LOOK_UP: "Nhìn lên",
+  LOOK_DOWN: "Nhìn xuống",
+  OPEN_MOUTH: "Mở miệng",
+};
+
+const distance2D = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+  Math.hypot(a.x - b.x, a.y - b.y);
+
+const averagePoint = (pts: { x: number; y: number }[]) => {
+  const sum = pts.reduce(
+    (acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }),
+    { x: 0, y: 0 }
+  );
+  return { x: sum.x / pts.length, y: sum.y / pts.length };
+};
+
+const calcEAR = (eye: { x: number; y: number }[]) => {
+  const p1 = eye[0], p2 = eye[1], p3 = eye[2], p4 = eye[3], p5 = eye[4], p6 = eye[5];
+  return (distance2D(p2, p6) + distance2D(p3, p5)) / (2 * distance2D(p1, p4));
+};
+
+const calcMAR = (mouth: { x: number; y: number }[]) => {
+  const p1 = mouth[0], p2 = mouth[1], p3 = mouth[2], p4 = mouth[3], p5 = mouth[4], p6 = mouth[5], p7 = mouth[6], p8 = mouth[7];
+  return (distance2D(p3, p7) + distance2D(p4, p6) + distance2D(p2, p8)) / (2 * distance2D(p1, p5));
+};
+
+const getPose = (positions: { x: number; y: number }[]) => {
+  const leftEye = averagePoint(positions.slice(36, 42));
+  const rightEye = averagePoint(positions.slice(42, 48));
+  const nose = positions[30];
+  const mouth = averagePoint(positions.slice(48, 60));
+  const eyeDist = distance2D(leftEye, rightEye) || 1;
+  const midEye = averagePoint([leftEye, rightEye]);
+  const yaw = (nose.x - midEye.x) / eyeDist;
+  const pitch = (nose.y - midEye.y) / (distance2D(midEye, mouth) || 1);
+  return { yaw, pitch };
+};
+
+// ========== ANTI-SPOOFING HELPERS ==========
+
+// Lấy pixel data từ video frame
+const getFrameData = (video: HTMLVideoElement): ImageData | null => {
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.drawImage(video, 0, 0);
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+};
+
+// Tính grayscale brightness trung bình của vùng mặt
+const getRegionBrightness = (imageData: ImageData, box: { x: number; y: number; width: number; height: number }): number => {
+  const { data, width } = imageData;
+  let sum = 0;
+  let count = 0;
+  const startX = Math.max(0, Math.floor(box.x));
+  const startY = Math.max(0, Math.floor(box.y));
+  const endX = Math.min(imageData.width, Math.floor(box.x + box.width));
+  const endY = Math.min(imageData.height, Math.floor(box.y + box.height));
+  // Sample every 4th pixel for performance
+  for (let y = startY; y < endY; y += 4) {
+    for (let x = startX; x < endX; x += 4) {
+      const idx = (y * width + x) * 4;
+      sum += data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+      count++;
+    }
+  }
+  return count > 0 ? sum / count : 0;
+};
+
+// Tính edge density (Sobel-like) - ảnh từ màn hình có pattern moiré
+const getEdgeDensity = (imageData: ImageData, box: { x: number; y: number; width: number; height: number }): number => {
+  const { data, width } = imageData;
+  let edgeSum = 0;
+  let count = 0;
+  const startX = Math.max(1, Math.floor(box.x));
+  const startY = Math.max(1, Math.floor(box.y));
+  const endX = Math.min(imageData.width - 1, Math.floor(box.x + box.width));
+  const endY = Math.min(imageData.height - 1, Math.floor(box.y + box.height));
+  for (let y = startY; y < endY; y += 3) {
+    for (let x = startX; x < endX; x += 3) {
+      const idx = (y * width + x) * 4;
+      const idxRight = (y * width + x + 1) * 4;
+      const idxDown = ((y + 1) * width + x) * 4;
+      const gx = Math.abs((data[idxRight] - data[idx]) + (data[idxRight + 1] - data[idx + 1]) + (data[idxRight + 2] - data[idx + 2])) / 3;
+      const gy = Math.abs((data[idxDown] - data[idx]) + (data[idxDown + 1] - data[idx + 1]) + (data[idxDown + 2] - data[idx + 2])) / 3;
+      edgeSum += Math.sqrt(gx * gx + gy * gy);
+      count++;
+    }
+  }
+  return count > 0 ? edgeSum / count : 0;
+};
+
+// Tính high-frequency energy (phát hiện moiré pattern từ screen)
+const getHighFrequencyEnergy = (imageData: ImageData, box: { x: number; y: number; width: number; height: number }): number => {
+  const { data, width } = imageData;
+  let energy = 0;
+  let count = 0;
+  const startX = Math.max(2, Math.floor(box.x));
+  const startY = Math.max(2, Math.floor(box.y));
+  const endX = Math.min(imageData.width - 2, Math.floor(box.x + box.width));
+  const endY = Math.min(imageData.height - 2, Math.floor(box.y + box.height));
+  // Laplacian filter (detect rapid intensity changes = screen pixels)
+  for (let y = startY; y < endY; y += 3) {
+    for (let x = startX; x < endX; x += 3) {
+      const getGray = (px: number, py: number) => {
+        const i = (py * width + px) * 4;
+        return data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      };
+      const laplacian = Math.abs(
+        -4 * getGray(x, y) + getGray(x - 1, y) + getGray(x + 1, y) + getGray(x, y - 1) + getGray(x, y + 1)
+      );
+      energy += laplacian;
+      count++;
+    }
+  }
+  return count > 0 ? energy / count : 0;
+};
+
+// Phát hiện màn hình qua color channel independence (RGB subpixel pattern)
+// Màn hình: R,G,B thay đổi độc lập → chênh lệch lớn giữa các kênh ở pixel lân cận
+// Da thật: R,G,B tương quan với nhau
+const getColorChannelIndependence = (imageData: ImageData, box: { x: number; y: number; width: number; height: number }): number => {
+  const { data, width } = imageData;
+  let totalDiff = 0;
+  let count = 0;
+  const startX = Math.max(1, Math.floor(box.x));
+  const startY = Math.max(1, Math.floor(box.y));
+  const endX = Math.min(imageData.width - 1, Math.floor(box.x + box.width));
+  const endY = Math.min(imageData.height - 1, Math.floor(box.y + box.height));
+  for (let y = startY; y < endY; y += 4) {
+    for (let x = startX; x < endX; x += 4) {
+      const i = (y * width + x) * 4;
+      const iR = (y * width + x + 1) * 4;
+      // Chênh lệch R giữa 2 pixel lân cận
+      const dR = Math.abs(data[i] - data[iR]);
+      const dG = Math.abs(data[i + 1] - data[iR + 1]);
+      const dB = Math.abs(data[i + 2] - data[iR + 2]);
+      // Nếu 3 kênh thay đổi không đồng đều → nghi ngờ screen
+      const maxD = Math.max(dR, dG, dB);
+      const minD = Math.min(dR, dG, dB);
+      if (maxD > 3) { // chỉ xét pixel có thay đổi đáng kể
+        totalDiff += (maxD - minD) / (maxD + 1);
+        count++;
+      }
+    }
+  }
+  return count > 0 ? totalDiff / count : 0;
+};
+
+// Phân tích color temperature vùng mặt
+// Màn hình: ánh sáng xanh hơn (blue ratio cao), saturation thấp hơn
+// Mặt thật: da ấm hơn (red ratio cao), saturation tự nhiên
+const getColorStats = (imageData: ImageData, box: { x: number; y: number; width: number; height: number }) => {
+  const { data, width } = imageData;
+  let rSum = 0, gSum = 0, bSum = 0, count = 0;
+  const startX = Math.max(0, Math.floor(box.x));
+  const startY = Math.max(0, Math.floor(box.y));
+  const endX = Math.min(imageData.width, Math.floor(box.x + box.width));
+  const endY = Math.min(imageData.height, Math.floor(box.y + box.height));
+  for (let y = startY; y < endY; y += 4) {
+    for (let x = startX; x < endX; x += 4) {
+      const idx = (y * width + x) * 4;
+      rSum += data[idx];
+      gSum += data[idx + 1];
+      bSum += data[idx + 2];
+      count++;
+    }
+  }
+  if (count === 0) return { blueRatio: 0, redRatio: 0, avgBrightness: 0 };
+  const total = rSum + gSum + bSum || 1;
+  return {
+    blueRatio: bSum / total,        // Màn hình: cao hơn ~0.35+
+    redRatio: rSum / total,          // Mặt thật: cao hơn ~0.38+
+    avgBrightness: (rSum + gSum + bSum) / (count * 3),
+  };
+};
+
+// So sánh 2 frame xem có quá giống nhau không (ảnh tĩnh/video loop)
+const framesSimilarity = (prev: ImageData, curr: ImageData): number => {
+  if (prev.width !== curr.width || prev.height !== curr.height) return 0;
+  let matchPixels = 0;
+  let totalPixels = 0;
+  // Sample every 8th pixel
+  for (let i = 0; i < prev.data.length; i += 32) {
+    const diff = Math.abs(prev.data[i] - curr.data[i]) + Math.abs(prev.data[i + 1] - curr.data[i + 1]) + Math.abs(prev.data[i + 2] - curr.data[i + 2]);
+    if (diff < 10) matchPixels++;
+    totalPixels++;
+  }
+  return totalPixels > 0 ? matchPixels / totalPixels : 0;
+};
+
+interface SpoofAnalysis {
+  isSpoof: boolean;
+  reasons: string[];
+  scores: {
+    movementVariance: number;
+    frameSimilarity: number;
+    brightnessVariance: number;
+    highFreqEnergy: number;
+    colorIndependence: number;
+  };
+}
 
 type CheckInStep = "loading" | "otp" | "location" | "liveness" | "processing" | "result";
 
@@ -58,14 +293,58 @@ const StudentCheckIn: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [faceMatchResult, setFaceMatchResult] = useState<"matching" | "matched" | "not_matched" | null>(null);
+  const [livenessChallenges, _setLivenessChallenges] = useState<LivenessChallenge[]>([]);
+  const livenessChallengesRef = useRef<LivenessChallenge[]>([]);
+  const setLivenessChallenges = (v: LivenessChallenge[]) => { livenessChallengesRef.current = v; _setLivenessChallenges(v); };
+  const [livenessNonce, _setLivenessNonce] = useState("");
+  const livenessNonceRef = useRef("");
+  const setLivenessNonce = (v: string) => { livenessNonceRef.current = v; _setLivenessNonce(v); };
+  const [livenessToken, _setLivenessToken] = useState("");
+  const livenessTokenRef = useRef("");
+  const setLivenessToken = (v: string) => { livenessTokenRef.current = v; _setLivenessToken(v); };
+  const [livenessPassed, _setLivenessPassed] = useState(false);
+  const livenessPassedRef = useRef(false);
+  const setLivenessPassed = (v: boolean) => { livenessPassedRef.current = v; _setLivenessPassed(v); };
+  const [challengeIndex, _setChallengeIndex] = useState(0);
+  const challengeIndexRef = useRef(0);
+  const setChallengeIndex = (v: number) => { challengeIndexRef.current = v; _setChallengeIndex(v); };
 
   const isRunningRef = useRef(false);
   const frameCountRef = useRef(0);
   const matchCountRef = useRef(0);
-  
+  const livenessResultsRef = useRef<Record<string, { pass: boolean; ts: number }>>({});
+  const livenessStartRef = useRef<number>(0);
+  const challengeStartRef = useRef<number>(0);
+  const baselinePoseRef = useRef<{ yaw: number; pitch: number } | null>(null);
+  const blinkFramesRef = useRef(0);
+  const earHistoryRef = useRef<number[]>([]);  // Track EAR values for baseline
+  const waitingForNeutralRef = useRef(false);  // Chờ về trung lập trước challenge tiếp
+  const holdFramesRef = useRef(0);             // Đếm số frame giữ hành động liên tiếp
+  const livenessStartedRef = useRef(false);
+  const faceLostCountRef = useRef(0);
+
+  // Smooth rendering refs
+  const lastDetectionRef = useRef<any>(null);         // Last full detection result
+  const lastBoxRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  const smoothBoxRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  const lastDetectTimeRef = useRef(0);
+  const animFrameRef = useRef(0);
+  const lastMatchedRef = useRef(false);
+
   // Store verified data in refs to preserve through re-renders
   const verifiedCodeRef = useRef<string>("");
   const slotInfoRef = useRef<SlotInfo | null>(null);
+
+  // Anti-spoofing refs
+  const prevFrameRef = useRef<ImageData | null>(null);
+  const landmarkHistoryRef = useRef<{ x: number; y: number }[][]>([]);
+  const brightnessHistoryRef = useRef<number[]>([]);
+  const frameSimilarityHistoryRef = useRef<number[]>([]);
+  const highFreqHistoryRef = useRef<number[]>([]);
+  const colorIndepHistoryRef = useRef<number[]>([]);
+  const blueRedRatioHistoryRef = useRef<number[]>([]);
+  const spoofScoreRef = useRef<SpoofAnalysis | null>(null);
+  const [spoofWarning, setSpoofWarning] = useState<string | null>(null);
 
   // Result
   const [processingStatus, setProcessingStatus] = useState("");
@@ -123,6 +402,84 @@ const StudentCheckIn: React.FC = () => {
     return false;
   };
 
+  const resetLivenessState = useCallback(() => {
+    setLivenessChallenges([]);
+    setLivenessNonce("");
+    setLivenessToken("");
+    setLivenessPassed(false);
+    setChallengeIndex(0);
+    livenessResultsRef.current = {};
+    livenessStartRef.current = Date.now();
+    challengeStartRef.current = Date.now();
+    baselinePoseRef.current = null;
+    blinkFramesRef.current = 0;
+    earHistoryRef.current = [];
+    waitingForNeutralRef.current = false;
+    holdFramesRef.current = 0;
+    // Reset anti-spoofing
+    prevFrameRef.current = null;
+    landmarkHistoryRef.current = [];
+    brightnessHistoryRef.current = [];
+    frameSimilarityHistoryRef.current = [];
+    highFreqHistoryRef.current = [];
+    colorIndepHistoryRef.current = [];
+    blueRedRatioHistoryRef.current = [];
+    spoofScoreRef.current = null;
+    setSpoofWarning(null);
+  }, []);
+
+  const fetchLivenessChallenge = useCallback(async () => {
+    try {
+      const res = await api.get("/student/face/liveness-challenge");
+      const data = res.data?.data;
+      if (!data?.nonce || !data?.challenges?.length) {
+        throw new Error("Invalid challenge");
+      }
+      setLivenessNonce(data.nonce);
+      setLivenessChallenges(data.challenges);
+      setChallengeIndex(0);
+      livenessStartRef.current = Date.now();
+      challengeStartRef.current = Date.now();
+      baselinePoseRef.current = null;
+      blinkFramesRef.current = 0;
+      setStatusMessage(`Liveness: ${CHALLENGE_TEXT[data.challenges[0]]}`);
+    } catch (err) {
+      console.error("Liveness challenge error:", err);
+      setStatusMessage("Không lấy được thử thách liveness");
+    }
+  }, []);
+
+  const verifyLivenessOnServer = useCallback(async () => {
+    const durationMs = Date.now() - livenessStartRef.current;
+    const res = await api.post("/student/face/liveness-verify", {
+      nonce: livenessNonceRef.current,
+      results: livenessResultsRef.current,
+      durationMs,
+    });
+    const token = res.data?.data?.livenessToken;
+    if (!token) throw new Error("No liveness token");
+    setLivenessToken(token);
+    setLivenessPassed(true);
+    setStatusMessage("Liveness đạt. Đang xác thực khuôn mặt...");
+    frameCountRef.current = 0;
+    matchCountRef.current = 0;
+    // Reset anti-spoofing data để thu thập mới cho face matching phase
+    landmarkHistoryRef.current = [];
+    frameSimilarityHistoryRef.current = [];
+    brightnessHistoryRef.current = [];
+    highFreqHistoryRef.current = [];
+    colorIndepHistoryRef.current = [];
+    blueRedRatioHistoryRef.current = [];
+    prevFrameRef.current = null;
+    spoofScoreRef.current = null;
+  }, []);
+
+  const failLiveness = useCallback((message: string) => {
+    setCheckInResult("failed");
+    setResultMessage(message);
+    setCurrentStep("result");
+  }, []);
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -151,71 +508,315 @@ const StudentCheckIn: React.FC = () => {
     return canvas.toDataURL("image/jpeg", 0.8);
   };
 
-  // Detection loop using face-api.js
+  // ===== SMOOTH RENDER LOOP (60fps) - chỉ vẽ, không detect =====
+  const drawFrame = useCallback(() => {
+    if (!isRunningRef.current) return;
+
+    if (canvasRef.current && videoRef.current && smoothBoxRef.current) {
+      const displaySize = { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight };
+      faceapi.matchDimensions(canvasRef.current, displaySize);
+      const ctx = canvasRef.current.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+        // Lerp smooth box toward target box
+        const target = lastBoxRef.current;
+        const smooth = smoothBoxRef.current;
+        if (target) {
+          const t = 0.3; // interpolation speed
+          smooth.x += (target.x - smooth.x) * t;
+          smooth.y += (target.y - smooth.y) * t;
+          smooth.width += (target.width - smooth.width) * t;
+          smooth.height += (target.height - smooth.height) * t;
+        }
+
+        const box = smooth;
+        const isSpoof = spoofScoreRef.current?.isSpoof;
+        const matched = lastMatchedRef.current;
+        const inLiveness = !livenessPassedRef.current;
+
+        // Pick color
+        const color = isSpoof ? "#f59e0b" : inLiveness ? "#FF7043" : matched ? "#22c55e" : "#ef4444";
+
+        // Corner bracket style (modern look)
+        const cornerLen = Math.min(25, box.width * 0.15);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
+
+        // Top-left
+        ctx.beginPath(); ctx.moveTo(box.x, box.y + cornerLen); ctx.lineTo(box.x, box.y); ctx.lineTo(box.x + cornerLen, box.y); ctx.stroke();
+        // Top-right
+        ctx.beginPath(); ctx.moveTo(box.x + box.width - cornerLen, box.y); ctx.lineTo(box.x + box.width, box.y); ctx.lineTo(box.x + box.width, box.y + cornerLen); ctx.stroke();
+        // Bottom-left
+        ctx.beginPath(); ctx.moveTo(box.x, box.y + box.height - cornerLen); ctx.lineTo(box.x, box.y + box.height); ctx.lineTo(box.x + cornerLen, box.y + box.height); ctx.stroke();
+        // Bottom-right
+        ctx.beginPath(); ctx.moveTo(box.x + box.width - cornerLen, box.y + box.height); ctx.lineTo(box.x + box.width, box.y + box.height); ctx.lineTo(box.x + box.width, box.y + box.height - cornerLen); ctx.stroke();
+
+        // Thin connecting lines between corners
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.3;
+        ctx.strokeRect(box.x, box.y, box.width, box.height);
+        ctx.globalAlpha = 1;
+
+        // Spoof warning label
+        if (isSpoof) {
+          ctx.fillStyle = "rgba(245, 158, 11, 0.85)";
+          const labelW = 180;
+          ctx.fillRect(box.x + (box.width - labelW) / 2, box.y - 30, labelW, 24);
+          ctx.fillStyle = "white";
+          ctx.font = "bold 12px Inter, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("⚠ NGHI NGỜ GIAN LẬN", box.x + box.width / 2, box.y - 12);
+        }
+      }
+    } else if (canvasRef.current && !smoothBoxRef.current) {
+      const ctx = canvasRef.current.getContext("2d");
+      if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+
+    animFrameRef.current = requestAnimationFrame(drawFrame);
+  }, []);
+
+  // ===== AI DETECTION LOOP (mỗi 200ms) - nặng nhưng chạy thưa =====
   const runDetection = useCallback(async () => {
     if (!isRunningRef.current || !videoRef.current || !modelsLoaded) return;
 
     try {
       const detection = await faceapi
-        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.15 }))
+        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.1 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (detection) {
         setFaceDetected(true);
-        frameCountRef.current += 1;
+        faceLostCountRef.current = 0;
+        lastDetectionRef.current = detection;
 
-        // Compare with stored descriptors
-        const matched = isMatch(detection.descriptor);
-        if (matched) {
-          matchCountRef.current += 1;
-        }
-
-        const currentProgress = Math.min((frameCountRef.current / REQUIRED_FRAMES) * 100, 100);
-        const matchRate = frameCountRef.current > 0 ? Math.round((matchCountRef.current / frameCountRef.current) * 100) : 0;
-        setProgress(currentProgress);
-
-        if (frameCountRef.current < REQUIRED_FRAMES) {
-          setStatusMessage(`Xác thực... ${matchRate}% khớp (${frameCountRef.current}/${REQUIRED_FRAMES})`);
-        }
-
-        // Draw face box
-        if (canvasRef.current) {
+        // Update target box for smooth rendering
+        if (videoRef.current) {
           const displaySize = { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight };
-          faceapi.matchDimensions(canvasRef.current, displaySize);
           const resized = faceapi.resizeResults(detection, displaySize);
-          const ctx = canvasRef.current.getContext("2d");
-          if (ctx) {
-            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            const box = resized.detection.box;
-            ctx.strokeStyle = matched ? "#22c55e" : "#ef4444";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
+          const b = resized.detection.box;
+          lastBoxRef.current = { x: b.x, y: b.y, width: b.width, height: b.height };
+          if (!smoothBoxRef.current) {
+            smoothBoxRef.current = { ...lastBoxRef.current };
           }
         }
 
-        // Check if done
-        if (frameCountRef.current >= REQUIRED_FRAMES) {
-          const finalMatchRate = matchCountRef.current / frameCountRef.current;
-          const img = captureFrame();
+        // Anti-spoofing data collection
+        if (videoRef.current) {
+          const _frameData = getFrameData(videoRef.current);
+          if (_frameData) {
+            const _noseTip = detection.landmarks.positions[30];
+            landmarkHistoryRef.current.push([_noseTip]);
+            if (landmarkHistoryRef.current.length > SPOOF_HISTORY_FRAMES * 2) landmarkHistoryRef.current.shift();
 
-          if (finalMatchRate >= REQUIRED_MATCH_RATE) {
-            setFaceMatchResult("matched");
-            setStatusMessage(`Xác thực thành công! (${Math.round(finalMatchRate * 100)}%)`);
-            setTimeout(() => captureAndProcess(true, img, finalMatchRate), 500);
-          } else {
-            setFaceMatchResult("not_matched");
-            setStatusMessage(`Không khớp! Chỉ ${Math.round(finalMatchRate * 100)}% (cần ${Math.round(REQUIRED_MATCH_RATE * 100)}%)`);
-            setTimeout(() => captureAndProcess(false, img, finalMatchRate), 500);
+            if (prevFrameRef.current) {
+              const _sim = framesSimilarity(prevFrameRef.current, _frameData);
+              frameSimilarityHistoryRef.current.push(_sim);
+              if (frameSimilarityHistoryRef.current.length > SPOOF_HISTORY_FRAMES * 2) frameSimilarityHistoryRef.current.shift();
+            }
+            prevFrameRef.current = _frameData;
+
+            const _brightness = getRegionBrightness(_frameData, detection.detection.box);
+            brightnessHistoryRef.current.push(_brightness);
+            if (brightnessHistoryRef.current.length > SPOOF_HISTORY_FRAMES * 2) brightnessHistoryRef.current.shift();
+
+            const _hf = getHighFrequencyEnergy(_frameData, detection.detection.box);
+            highFreqHistoryRef.current.push(_hf);
+            if (highFreqHistoryRef.current.length > SPOOF_HISTORY_FRAMES * 2) highFreqHistoryRef.current.shift();
+
+            const _ci = getColorChannelIndependence(_frameData, detection.detection.box);
+            colorIndepHistoryRef.current.push(_ci);
+            if (colorIndepHistoryRef.current.length > SPOOF_HISTORY_FRAMES * 2) colorIndepHistoryRef.current.shift();
+
+            // So sánh ánh sáng vùng mặt vs 4 GÓC khung hình (phòng thật)
+            const faceBox = detection.detection.box;
+            const faceColor = getColorStats(_frameData, faceBox);
+            const fw = _frameData.width;
+            const fh = _frameData.height;
+            const cornerSize = Math.floor(Math.min(fw, fh) * 0.15); // 15% góc
+            // Lấy 4 góc khung hình
+            const corners = [
+              { x: 0, y: 0, width: cornerSize, height: cornerSize },                       // top-left
+              { x: fw - cornerSize, y: 0, width: cornerSize, height: cornerSize },          // top-right
+              { x: 0, y: fh - cornerSize, width: cornerSize, height: cornerSize },          // bottom-left
+              { x: fw - cornerSize, y: fh - cornerSize, width: cornerSize, height: cornerSize }, // bottom-right
+            ];
+            let bgBlueSum = 0, bgRedSum = 0, bgCount = 0;
+            for (const corner of corners) {
+              const c = getColorStats(_frameData, corner);
+              if (c.redRatio > 0) {
+                bgBlueSum += c.blueRatio;
+                bgRedSum += c.redRatio;
+                bgCount++;
+              }
+            }
+            if (faceColor.redRatio > 0 && bgCount > 0) {
+              const faceBR = faceColor.blueRatio / faceColor.redRatio;
+              const bgBR = (bgBlueSum / bgCount) / (bgRedSum / bgCount);
+              const brDiff = Math.abs(faceBR - bgBR);
+              blueRedRatioHistoryRef.current.push(brDiff);
+              if (blueRedRatioHistoryRef.current.length > SPOOF_HISTORY_FRAMES * 2) blueRedRatioHistoryRef.current.shift();
+              console.log("[LightDiff]", { faceBR: faceBR.toFixed(4), bgBR: bgBR.toFixed(4), diff: brDiff.toFixed(4) });
+            }
           }
-          return;
+        }
+
+        // ===== LIVENESS PHASE =====
+        if (!livenessPassedRef.current) {
+          const currentChallenge = livenessChallengesRef.current[challengeIndexRef.current];
+          if (!currentChallenge) {
+            setStatusMessage("Đang chuẩn bị liveness...");
+          } else {
+            if (Date.now() - challengeStartRef.current > CHALLENGE_TIMEOUT_MS) {
+              failLiveness("Không hoàn thành thử thách liveness đúng thời gian.");
+              return;
+            }
+
+            const positions = detection.landmarks.positions;
+            const leftEye = positions.slice(36, 42);
+            const rightEye = positions.slice(42, 48);
+            const mouth = positions.slice(60, 68);
+            const ear = (calcEAR(leftEye) + calcEAR(rightEye)) / 2;
+            const mar = calcMAR(mouth);
+            const pose = getPose(positions);
+
+            // Kiểm tra vị trí trung lập (nhìn gần thẳng, miệng đóng)
+            // pitch baseline ~0.55 khi nhìn thẳng, yaw ~0 khi nhìn thẳng
+            const isNeutral = Math.abs(pose.yaw) < 0.12 && Math.abs(pose.pitch - 0.55) < 0.15 && mar < 0.45;
+
+            // Phải về trung lập trước khi bắt đầu challenge mới
+            if (waitingForNeutralRef.current) {
+              if (isNeutral) {
+                waitingForNeutralRef.current = false;
+                baselinePoseRef.current = pose;
+                challengeStartRef.current = Date.now();
+                setStatusMessage(`Liveness: ${CHALLENGE_TEXT[currentChallenge]}`);
+              } else {
+                setStatusMessage("Nhìn thẳng vào camera...");
+              }
+            } else {
+              if (!baselinePoseRef.current) baselinePoseRef.current = pose;
+
+              // Kiểm tra hành động có đang đúng không
+              let actionDetected = false;
+              switch (currentChallenge) {
+                case "BLINK": {
+                  earHistoryRef.current.push(ear);
+                  if (earHistoryRef.current.length > 20) earHistoryRef.current.shift();
+                  if (ear < EAR_THRESHOLD) blinkFramesRef.current += 1;
+                  if (earHistoryRef.current.length >= 3) {
+                    const recent = earHistoryRef.current.slice(-6, -1);
+                    if (recent.length >= 2) {
+                      const baseline = recent.reduce((a, b) => a + b, 0) / recent.length;
+                      if (ear < baseline * 0.75) blinkFramesRef.current += 1;
+                    }
+                  }
+                  // Blink không cần giữ lâu, chỉ cần detect 1 lần
+                  if (blinkFramesRef.current >= 1) actionDetected = true;
+                  break;
+                }
+                case "OPEN_MOUTH": actionDetected = mar > MAR_THRESHOLD; break;
+                case "TURN_LEFT": actionDetected = pose.yaw < (baselinePoseRef.current?.yaw || 0) - YAW_THRESHOLD; break;
+                case "TURN_RIGHT": actionDetected = pose.yaw > (baselinePoseRef.current?.yaw || 0) + YAW_THRESHOLD; break;
+                case "LOOK_UP": actionDetected = pose.pitch < (baselinePoseRef.current?.pitch || 0.55) - PITCH_THRESHOLD; break;
+                case "LOOK_DOWN": actionDetected = pose.pitch > (baselinePoseRef.current?.pitch || 0.55) + PITCH_THRESHOLD; break;
+              }
+
+              // Đếm số frame giữ hành động liên tiếp
+              if (actionDetected) {
+                holdFramesRef.current += 1;
+              } else {
+                holdFramesRef.current = 0; // Reset nếu ngừng giữ
+              }
+
+              const holdProgress = Math.min(holdFramesRef.current / HOLD_FRAMES_REQUIRED, 1);
+              const holdSeconds = (holdFramesRef.current * DETECT_INTERVAL_MS / 1000).toFixed(1);
+
+              if (actionDetected && holdFramesRef.current < HOLD_FRAMES_REQUIRED) {
+                setStatusMessage(`Liveness: ${CHALLENGE_TEXT[currentChallenge]} - Giữ (${holdSeconds}s)...`);
+              } else {
+                setStatusMessage(`Liveness: ${CHALLENGE_TEXT[currentChallenge]}`);
+              }
+
+              const passed = currentChallenge === "BLINK"
+                ? actionDetected  // Blink không cần giữ
+                : holdFramesRef.current >= HOLD_FRAMES_REQUIRED;
+
+              if (passed) {
+                livenessResultsRef.current[currentChallenge] = { pass: true, ts: Date.now() };
+                const nextIndex = challengeIndexRef.current + 1;
+                setChallengeIndex(nextIndex);
+                baselinePoseRef.current = null;
+                blinkFramesRef.current = 0;
+                holdFramesRef.current = 0;
+
+                if (nextIndex >= livenessChallengesRef.current.length) {
+                  try { await verifyLivenessOnServer(); }
+                  catch { failLiveness("Xác thực liveness thất bại. Vui lòng thử lại."); return; }
+                } else {
+                  // Yêu cầu về trung lập trước challenge tiếp theo
+                  waitingForNeutralRef.current = true;
+                  setStatusMessage("Nhìn thẳng vào camera...");
+                }
+              }
+            }
+          }
+        }
+        // ===== FACE MATCHING PHASE =====
+        else {
+          frameCountRef.current += 1;
+          const matched = isMatch(detection.descriptor);
+          if (matched) matchCountRef.current += 1;
+          lastMatchedRef.current = matched;
+
+          const currentProgress = Math.min((frameCountRef.current / REQUIRED_FRAMES) * 100, 100);
+          const matchRate = frameCountRef.current > 0 ? Math.round((matchCountRef.current / frameCountRef.current) * 100) : 0;
+          setProgress(currentProgress);
+
+          if (frameCountRef.current < REQUIRED_FRAMES) {
+            setStatusMessage(`Xác thực... ${matchRate}% khớp (${frameCountRef.current}/${REQUIRED_FRAMES})`);
+          }
+
+          // Check if done
+          if (frameCountRef.current >= REQUIRED_FRAMES) {
+            const finalMatchRate = matchCountRef.current / frameCountRef.current;
+            const img = captureFrame();
+            const spoof = spoofScoreRef.current;
+
+            if (spoof?.isSpoof) {
+              setFaceMatchResult("not_matched");
+              setStatusMessage(`Phát hiện gian lận: ${spoof.reasons[0]}`);
+              setTimeout(() => {
+                setCapturedImage(img); isRunningRef.current = false; stopCamera();
+                setCheckInResult("failed");
+                setResultMessage(`Phát hiện hành vi gian lận!\n${spoof.reasons.join(", ")}\nVui lòng sử dụng khuôn mặt thật.`);
+                setCurrentStep("result");
+              }, 1000);
+              return;
+            }
+
+            if (finalMatchRate >= REQUIRED_MATCH_RATE) {
+              setFaceMatchResult("matched");
+              setStatusMessage(`Xác thực thành công! (${Math.round(finalMatchRate * 100)}%)`);
+              setTimeout(() => captureAndProcess(true, img, finalMatchRate), 500);
+            } else {
+              setFaceMatchResult("not_matched");
+              setStatusMessage(`Không khớp! Chỉ ${Math.round(finalMatchRate * 100)}% (cần ${Math.round(REQUIRED_MATCH_RATE * 100)}%)`);
+              setTimeout(() => captureAndProcess(false, img, finalMatchRate), 500);
+            }
+            return;
+          }
         }
       } else {
-        setFaceDetected(false);
-        setStatusMessage("Đưa mặt vào camera");
-        if (canvasRef.current) {
-          const ctx = canvasRef.current.getContext("2d");
-          if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        faceLostCountRef.current += 1;
+        if (faceLostCountRef.current >= FACE_LOST_TOLERANCE) {
+          setFaceDetected(false);
+          smoothBoxRef.current = null;
+          setStatusMessage("Đưa mặt vào camera");
         }
       }
     } catch (e) {
@@ -223,9 +824,14 @@ const StudentCheckIn: React.FC = () => {
     }
 
     if (isRunningRef.current) {
-      requestAnimationFrame(runDetection);
+      setTimeout(runDetection, DETECT_INTERVAL_MS);
     }
-  }, [modelsLoaded, storedDescriptors]);
+  }, [
+    modelsLoaded,
+    storedDescriptors,
+    verifyLivenessOnServer,
+    failLiveness,
+  ]);
 
   const captureAndProcess = (faceMatched: boolean, img: string | null, matchRate: number = 0) => {
     setCapturedImage(img);
@@ -365,6 +971,10 @@ const StudentCheckIn: React.FC = () => {
         faceMatchRate: matchRate,
       });
       
+      const completed = Object.keys(livenessResultsRef.current).filter(
+        (k) => livenessResultsRef.current[k]?.pass
+      );
+
       const res = await api.post("/student/attendance/checkin", {
         slotId: currentSlotInfo.slotId,
         sessionId: currentSlotInfo.sessionId,
@@ -373,6 +983,13 @@ const StudentCheckIn: React.FC = () => {
         faceVerified: faceVerified,
         faceMatchRate: matchRate,
         location: userLocation,
+        livenessToken: livenessTokenRef.current,
+        livenessCompleted: completed,
+        antiSpoofing: spoofScoreRef.current ? {
+          passed: !spoofScoreRef.current.isSpoof,
+          scores: spoofScoreRef.current.scores,
+          reasons: spoofScoreRef.current.reasons,
+        } : null,
       });
       
       if (res.data.success) {
@@ -398,6 +1015,7 @@ const StudentCheckIn: React.FC = () => {
     frameCountRef.current = 0;
     matchCountRef.current = 0;
     setCapturedImage(null);
+    resetLivenessState();
     setCurrentStep("liveness");
   };
 
@@ -407,20 +1025,29 @@ const StudentCheckIn: React.FC = () => {
   }, [currentStep, checkLocation]);
 
   useEffect(() => {
-    if (currentStep === "liveness" && modelsLoaded) {
+    if (currentStep === "liveness" && modelsLoaded && !livenessStartedRef.current) {
+      livenessStartedRef.current = true;
+      resetLivenessState();
       startCamera().then(() => {
         setTimeout(() => {
           isRunningRef.current = true;
           setStatusMessage("Đưa mặt vào camera");
           runDetection();
+          drawFrame();
         }, 500);
       });
+      fetchLivenessChallenge();
+    }
+
+    if (currentStep !== "liveness") {
+      livenessStartedRef.current = false;
     }
     return () => {
       isRunningRef.current = false;
+      cancelAnimationFrame(animFrameRef.current);
       stopCamera();
     };
-  }, [currentStep, modelsLoaded, runDetection]);
+  }, [currentStep, modelsLoaded, runDetection, drawFrame, resetLivenessState, fetchLivenessChallenge]);
 
   // Render
   if (currentStep === "loading") {
@@ -662,6 +1289,12 @@ const StudentCheckIn: React.FC = () => {
                         : "Chưa thấy"}
                     </div>
                   </div>
+
+                  {spoofWarning && (
+                    <div className="absolute top-14 left-3 right-3 bg-amber-500/90 text-white text-center py-2 px-3 rounded-lg text-sm font-semibold animate-pulse">
+                      ⚠ {spoofWarning}
+                    </div>
+                  )}
 
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-5">
                     <p className="text-white text-center text-lg font-medium mb-3">{statusMessage}</p>

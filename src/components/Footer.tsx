@@ -8,7 +8,9 @@ const Footer: React.FC = () => {
       background: 'linear-gradient(135deg, #1F2937 0%, #374151 100%)',
       color: 'white',
       padding: '3rem 1.5rem 1.5rem',
-      marginTop: 'auto'
+      marginTop: 'auto',
+      width: '100%',
+      boxSizing: 'border-box'
     }}>
       <div style={{
         maxWidth: '1200px',

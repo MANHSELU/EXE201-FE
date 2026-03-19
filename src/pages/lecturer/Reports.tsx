@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import api from "../../services/api";
 import Footer from "../../components/Footer";
 import LecturerHeader from "../../components/LecturerHeader";
 
 interface ClassInfo {
-  _id: string;
-  name: string;
+  classId: string;
+  className: string;
+  subjectId: string;
   subjectCode: string;
   subjectName: string;
 }
 
 interface AttendanceRecord {
   _id: string;
+  sessionId: string | null;
   date: string;
-  slot: number;
   startTime: string;
   endTime: string;
   roomName: string;
@@ -21,50 +23,48 @@ interface AttendanceRecord {
   presentCount: number;
   absentCount: number;
   lateCount: number;
+  hasAttendance: boolean;
 }
 
 interface StudentAttendance {
   _id: string;
-  studentId: string;
   studentName: string;
   studentCode: string;
-  status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
+  status: "PRESENT" | "ABSENT" | "LATE" | "INVALID_LOCATION";
   checkInTime: string | null;
   note: string;
 }
 
 const LecturerReports: React.FC = () => {
   useAuth();
-  
-  // Filters
+
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [filterDate, setFilterDate] = useState<string>(""); // Local filter for history list
-  
-  // Data
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [filterDate, setFilterDate] = useState<string>("");
+
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
   const [studentAttendances, setStudentAttendances] = useState<StudentAttendance[]>([]);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
-  
-  // Filtered records based on date
-  const filteredRecords = filterDate 
-    ? attendanceRecords.filter(record => record.date === filterDate)
+
+  const filteredRecords = filterDate
+    ? attendanceRecords.filter(record => {
+        const recordDate = new Date(record.date).toISOString().split("T")[0];
+        return recordDate === filterDate;
+      })
     : attendanceRecords;
 
-  // Fetch classes that lecturer teaches
   useEffect(() => {
-    // Mock classes - replace with API call: api.get('/lecturer/classes')
-    setClasses([
-      { _id: "1", name: "SE18C01", subjectCode: "DBI202", subjectName: "Database Introduction" },
-      { _id: "2", name: "SE18C02", subjectCode: "PRJ301", subjectName: "Java Web Application" },
-      { _id: "3", name: "SE18C03", subjectCode: "WDP301", subjectName: "Web Development Project" },
-      { _id: "4", name: "CNTT K20", subjectCode: "DB202", subjectName: "Cơ sở dữ liệu" },
-    ]);
+    (async () => {
+      try {
+        const res = await api.get("/lecturer/reports/classes");
+        setClasses(res.data.data || []);
+      } catch { setClasses([]); }
+    })();
   }, []);
 
-  // Fetch attendance records when class changes
   useEffect(() => {
     if (selectedClass) {
       fetchAttendanceRecords();
@@ -77,88 +77,37 @@ const LecturerReports: React.FC = () => {
   const fetchAttendanceRecords = async () => {
     setLoading(true);
     try {
-      // Mock API call - replace with real API
-      // const res = await api.get(`/lecturer/reports?subject=${selectedSubject}&class=${selectedClass}&date=${selectedDate}`);
-      
-      // Mock data
-      setTimeout(() => {
-        setAttendanceRecords([
-          {
-            _id: "1",
-            date: "2026-01-20",
-            slot: 1,
-            startTime: "07:30",
-            endTime: "09:45",
-            roomName: "A101",
-            totalStudents: 35,
-            presentCount: 30,
-            absentCount: 3,
-            lateCount: 2,
-          },
-          {
-            _id: "2",
-            date: "2026-01-22",
-            slot: 3,
-            startTime: "12:30",
-            endTime: "14:45",
-            roomName: "B202",
-            totalStudents: 35,
-            presentCount: 32,
-            absentCount: 2,
-            lateCount: 1,
-          },
-          {
-            _id: "3",
-            date: "2026-01-24",
-            slot: 2,
-            startTime: "09:50",
-            endTime: "12:05",
-            roomName: "A101",
-            totalStudents: 35,
-            presentCount: 28,
-            absentCount: 5,
-            lateCount: 2,
-          },
-        ]);
-        setLoading(false);
-      }, 500);
-    } catch (err) {
-      // Lỗi khi tải dữ liệu
-      setLoading(false);
-    }
+      const cls = classes.find(c => c.classId === selectedClass);
+      const url = `/lecturer/reports/sessions?classId=${selectedClass}${cls ? `&subjectId=${cls.subjectId}` : ""}`;
+      const res = await api.get(url);
+      setAttendanceRecords(res.data.data || []);
+    } catch { setAttendanceRecords([]); }
+    finally { setLoading(false); }
   };
 
-  const fetchStudentAttendances = async (_recordId: string) => {
+  const fetchStudentAttendances = async (sessionId: string) => {
     setDetailLoading(true);
     try {
-      // Mock API call
-      // const res = await api.get(`/lecturer/reports/${recordId}/students`);
-      
-      // Mock data
-      setTimeout(() => {
-        setStudentAttendances([
-          { _id: "1", studentId: "s1", studentName: "Nguyễn Văn An", studentCode: "SE181234", status: "PRESENT", checkInTime: "07:35", note: "" },
-          { _id: "2", studentId: "s2", studentName: "Trần Thị Bình", studentCode: "SE181235", status: "PRESENT", checkInTime: "07:32", note: "" },
-          { _id: "3", studentId: "s3", studentName: "Lê Văn Cường", studentCode: "SE181236", status: "LATE", checkInTime: "07:55", note: "Đến muộn 25 phút" },
-          { _id: "4", studentId: "s4", studentName: "Phạm Thị Dung", studentCode: "SE181237", status: "ABSENT", checkInTime: null, note: "" },
-          { _id: "5", studentId: "s5", studentName: "Hoàng Văn Em", studentCode: "SE181238", status: "PRESENT", checkInTime: "07:28", note: "" },
-          { _id: "6", studentId: "s6", studentName: "Ngô Thị Phương", studentCode: "SE181239", status: "PRESENT", checkInTime: "07:30", note: "" },
-          { _id: "7", studentId: "s7", studentName: "Vũ Văn Giang", studentCode: "SE181240", status: "EXCUSED", checkInTime: null, note: "Có đơn xin phép" },
-          { _id: "8", studentId: "s8", studentName: "Đỗ Thị Hoa", studentCode: "SE181241", status: "PRESENT", checkInTime: "07:33", note: "" },
-          { _id: "9", studentId: "s9", studentName: "Bùi Văn Khánh", studentCode: "SE181242", status: "LATE", checkInTime: "08:00", note: "Đến muộn 30 phút" },
-          { _id: "10", studentId: "s10", studentName: "Lý Thị Lan", studentCode: "SE181243", status: "PRESENT", checkInTime: "07:29", note: "" },
-        ]);
-        setDetailLoading(false);
-      }, 300);
-    } catch (err) {
-      // Lỗi khi tải chi tiết
-      setDetailLoading(false);
-    }
+      const res = await api.get(`/lecturer/reports/sessions/${sessionId}/students`);
+      setStudentAttendances(res.data.data || []);
+    } catch { setStudentAttendances([]); }
+    finally { setDetailLoading(false); }
   };
 
   const handleViewDetail = (record: AttendanceRecord) => {
     setSelectedRecord(record);
-    fetchStudentAttendances(record._id);
+    if (record.sessionId) {
+      fetchStudentAttendances(record.sessionId);
+    } else {
+      setStudentAttendances([]);
+    }
+  };
+
+  const handleSelectClass = (value: string) => {
+    setSelectedClass(value);
+    const cls = classes.find(c => c.classId === value);
+    setSelectedSubject(cls?.subjectId || "");
+    setSelectedRecord(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -169,8 +118,8 @@ const LecturerReports: React.FC = () => {
         return <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Vắng</span>;
       case "LATE":
         return <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">Đi muộn</span>;
-      case "EXCUSED":
-        return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Có phép</span>;
+      case "INVALID_LOCATION":
+        return <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">Sai vị trí</span>;
       default:
         return null;
     }
@@ -180,6 +129,13 @@ const LecturerReports: React.FC = () => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
   };
+
+  // Tính tổng thống kê
+  const totalSessions = attendanceRecords.length;
+  const attendedSessions = attendanceRecords.filter(r => r.hasAttendance).length;
+  const avgPresent = attendedSessions > 0
+    ? Math.round(attendanceRecords.filter(r => r.hasAttendance).reduce((sum, r) => sum + (r.totalStudents > 0 ? (r.presentCount / r.totalStudents) * 100 : 0), 0) / attendedSessions)
+    : 0;
 
   return (
     <>
@@ -194,9 +150,7 @@ const LecturerReports: React.FC = () => {
       <div className="report-container">
         <LecturerHeader />
 
-        {/* Main Content */}
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
-          {/* Page Title */}
           <div style={{ marginBottom: '2rem' }}>
             <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1F2937', marginBottom: '0.5rem' }}>Báo cáo điểm danh</h1>
             <p style={{ fontSize: '14px', color: '#6B7280' }}>Xem báo cáo điểm danh các lớp bạn đang dạy</p>
@@ -216,7 +170,7 @@ const LecturerReports: React.FC = () => {
             </label>
             <select
               value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
+              onChange={(e) => handleSelectClass(e.target.value)}
               style={{
                 width: '100%',
                 padding: '0.75rem 1rem',
@@ -230,12 +184,35 @@ const LecturerReports: React.FC = () => {
             >
               <option value="">-- Chọn lớp học --</option>
               {classes.map((cls) => (
-                <option key={cls._id} value={cls._id}>
-                  {cls.subjectCode} - {cls.name} ({cls.subjectName})
+                <option key={`${cls.classId}_${cls.subjectId}`} value={cls.classId}>
+                  {cls.subjectCode} - {cls.className} ({cls.subjectName})
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Summary stats */}
+          {selectedClass && !loading && attendanceRecords.length > 0 && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '1rem',
+              marginBottom: '1.5rem',
+            }}>
+              <div style={{ background: 'white', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                <p style={{ fontSize: '28px', fontWeight: 700, color: '#FF7043' }}>{totalSessions}</p>
+                <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '0.25rem' }}>Tổng buổi học</p>
+              </div>
+              <div style={{ background: 'white', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                <p style={{ fontSize: '28px', fontWeight: 700, color: '#22C55E' }}>{attendedSessions}</p>
+                <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '0.25rem' }}>Đã điểm danh</p>
+              </div>
+              <div style={{ background: 'white', borderRadius: '16px', padding: '1.25rem', boxShadow: '0 2px 10px rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                <p style={{ fontSize: '28px', fontWeight: 700, color: '#3B82F6' }}>{avgPresent}%</p>
+                <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '0.25rem' }}>TB có mặt</p>
+              </div>
+            </div>
+          )}
 
           {/* Content Area */}
           <div style={{ display: 'grid', gridTemplateColumns: selectedRecord ? '1fr 1fr' : '1fr', gap: '1.5rem' }}>
@@ -327,47 +304,64 @@ const LecturerReports: React.FC = () => {
                   {filteredRecords.map((record) => (
                     <div
                       key={record._id}
-                      onClick={() => handleViewDetail(record)}
+                      onClick={() => record.hasAttendance ? handleViewDetail(record) : undefined}
                       style={{
                         padding: '1rem',
                         borderRadius: '12px',
                         border: selectedRecord?._id === record._id ? '2px solid #FF7043' : '1px solid #E5E7EB',
-                        background: selectedRecord?._id === record._id ? '#FFF7ED' : '#FAFAFA',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
+                        background: !record.hasAttendance ? '#F9FAFB' : selectedRecord?._id === record._id ? '#FFF7ED' : '#FAFAFA',
+                        cursor: record.hasAttendance ? 'pointer' : 'default',
+                        transition: 'all 0.2s',
+                        opacity: record.hasAttendance ? 1 : 0.7,
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                         <div>
                           <p style={{ fontSize: '14px', fontWeight: 600, color: '#1F2937' }}>{formatDate(record.date)}</p>
-                          <p style={{ fontSize: '12px', color: '#6B7280' }}>Slot {record.slot} • {record.startTime} - {record.endTime}</p>
+                          <p style={{ fontSize: '12px', color: '#6B7280' }}>{record.startTime} - {record.endTime}</p>
                         </div>
-                        <span style={{
-                          padding: '0.25rem 0.75rem',
-                          background: '#E8F5E9',
-                          color: '#2E7D32',
-                          borderRadius: '20px',
-                          fontSize: '12px',
-                          fontWeight: 600
-                        }}>
-                          {record.roomName}
-                        </span>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <span style={{
+                            padding: '0.25rem 0.75rem',
+                            background: '#E8F5E9',
+                            color: '#2E7D32',
+                            borderRadius: '20px',
+                            fontSize: '12px',
+                            fontWeight: 600
+                          }}>
+                            {record.roomName}
+                          </span>
+                          {!record.hasAttendance && (
+                            <span style={{
+                              padding: '0.25rem 0.75rem',
+                              background: '#FEF3C7',
+                              color: '#92400E',
+                              borderRadius: '20px',
+                              fontSize: '11px',
+                              fontWeight: 600
+                            }}>
+                              Chưa điểm danh
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      
-                      <div style={{ display: 'flex', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E' }}></span>
-                          <span style={{ fontSize: '12px', color: '#6B7280' }}>{record.presentCount} có mặt</span>
+
+                      {record.hasAttendance && (
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E' }}></span>
+                            <span style={{ fontSize: '12px', color: '#6B7280' }}>{record.presentCount} có mặt</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444' }}></span>
+                            <span style={{ fontSize: '12px', color: '#6B7280' }}>{record.absentCount} vắng</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B' }}></span>
+                            <span style={{ fontSize: '12px', color: '#6B7280' }}>{record.lateCount} muộn</span>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444' }}></span>
-                          <span style={{ fontSize: '12px', color: '#6B7280' }}>{record.absentCount} vắng</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B' }}></span>
-                          <span style={{ fontSize: '12px', color: '#6B7280' }}>{record.lateCount} muộn</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -410,7 +404,7 @@ const LecturerReports: React.FC = () => {
                     {formatDate(selectedRecord.date)}
                   </p>
                   <p style={{ fontSize: '12px', color: '#6B7280' }}>
-                    Slot {selectedRecord.slot} • {selectedRecord.startTime} - {selectedRecord.endTime} • Phòng {selectedRecord.roomName}
+                    {selectedRecord.startTime} - {selectedRecord.endTime} &bull; Phòng {selectedRecord.roomName}
                   </p>
                 </div>
 
@@ -445,6 +439,15 @@ const LecturerReports: React.FC = () => {
                     <div style={{ textAlign: 'center', padding: '2rem' }}>
                       <div style={{ width: '30px', height: '30px', border: '3px solid #FFAB91', borderTopColor: '#FF7043', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }}></div>
                     </div>
+                  ) : !selectedRecord.hasAttendance ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#6B7280' }}>
+                      <span className="material-icons-outlined" style={{ fontSize: '48px', color: '#D1D5DB' }}>qr_code_2</span>
+                      <p style={{ marginTop: '0.5rem', fontSize: '14px' }}>Buổi này chưa được điểm danh</p>
+                    </div>
+                  ) : studentAttendances.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#6B7280' }}>
+                      <p>Chưa có sinh viên nào trong lớp</p>
+                    </div>
                   ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
@@ -473,27 +476,6 @@ const LecturerReports: React.FC = () => {
                     </table>
                   )}
                 </div>
-
-                {/* Export Button */}
-                <button style={{
-                  width: '100%',
-                  marginTop: '1rem',
-                  padding: '0.75rem',
-                  background: 'linear-gradient(135deg, #FF7043, #FFAB91)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
-                }}>
-                  <span className="material-icons-outlined" style={{ fontSize: '18px' }}>download</span>
-                  Xuất báo cáo Excel
-                </button>
               </div>
             )}
           </div>
