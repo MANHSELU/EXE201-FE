@@ -28,7 +28,7 @@ const AdminScheduleSlots: React.FC = () => {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [, setClasses] = useState<ClassItem[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [lecturers, setLecturers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
