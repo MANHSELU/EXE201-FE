@@ -33,16 +33,16 @@ const ROLE_LABEL: Record<string, string> = { STUDENT: "Học viên", LECTURER: "
 const AVATAR_BG: Record<string, string> = { STUDENT: "#10B981", LECTURER: "#3B82F6", ADMIN: "#FF7043" };
 
 const MOTIVATION_QUOTES = [
-  { quote: "Mỗi buổi học đều là cơ hội để bạn tiến gần hơn đến mục tiêu! 🌱", author: "Smart Attendance" },
-  { quote: "Điểm danh đầy đủ là bước đầu tiên để chinh phục môn học! ✨", author: "Smart Attendance" },
-  { quote: "Hôm nay bạn đến lớp là đã chiến thắng chính mình rồi! 🌟", author: "Smart Attendance" },
-  { quote: "Sự chăm chỉ của bạn hôm nay sẽ trả về thành quả ngày mai! 🚀", author: "Smart Attendance" },
-  { quote: "Mỗi buổi có mặt là bạn đang đầu tư cho tương lai của mình! 📖", author: "Smart Attendance" },
-  { quote: "Cố lên! Chỉ còn vài buổi nữa là hoàn thành kì học! ☀️", author: "Smart Attendance" },
-  { quote: "Đừng bỏ lỡ buổi nào — mỗi tiết học đều quan trọng! 💪", author: "Smart Attendance" },
-  { quote: "Đi học đều giúp bạn tự tin và nắm vững kiến thức! 🌍", author: "Smart Attendance" },
-  { quote: "Bạn làm được! Hãy giữ vững phong độ điểm danh nhé! 💡", author: "Smart Attendance" },
-  { quote: "Sinh viên chăm chỉ hôm nay là chuyên gia tài năng ngày mai! 🎯", author: "Smart Attendance" },
+  { quote: "Mỗi buổi học đều là cơ hội để bạn tiến gần hơn đến mục tiêu! 🌱", author: "NCT EDU" },
+  { quote: "Điểm danh đầy đủ là bước đầu tiên để chinh phục môn học! ✨", author: "NCT EDU" },
+  { quote: "Hôm nay bạn đến lớp là đã chiến thắng chính mình rồi! 🌟", author: "NCT EDU" },
+  { quote: "Sự chăm chỉ của bạn hôm nay sẽ trả về thành quả ngày mai! 🚀", author: "NCT EDU" },
+  { quote: "Mỗi buổi có mặt là bạn đang đầu tư cho tương lai của mình! 📖", author: "NCT EDU" },
+  { quote: "Cố lên! Chỉ còn vài buổi nữa là hoàn thành kì học! ☀️", author: "NCT EDU" },
+  { quote: "Đừng bỏ lỡ buổi nào — mỗi tiết học đều quan trọng! 💪", author: "NCT EDU" },
+  { quote: "Đi học đều giúp bạn tự tin và nắm vững kiến thức! 🌍", author: "NCT EDU" },
+  { quote: "Bạn làm được! Hãy giữ vững phong độ điểm danh nhé! 💡", author: "NCT EDU" },
+  { quote: "Sinh viên chăm chỉ hôm nay là chuyên gia tài năng ngày mai! 🎯", author: "NCT EDU" },
 ];
 
 const MOTIVATION_CSS = `
@@ -690,12 +690,6 @@ export default function StudentFeed() {
               </button>
             ))}
 
-            <a href="#" className="flex items-center gap-3.5 px-3 py-3 rounded-lg text-[16px] font-medium text-gray-800 hover:bg-white transition" style={{ textDecoration: "none" }}>
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                <span className={IC} style={{ fontSize: 22, color: "#1F2937" }}>groups</span>
-              </div>
-              Nhóm của tôi
-            </a>
           </div>
         </div>
 

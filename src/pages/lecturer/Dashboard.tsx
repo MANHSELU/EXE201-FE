@@ -16,16 +16,16 @@ interface Slot {
 
 // Các câu động viên cho giảng viên
 const motivationalQuotes = [
-  { quote: "Mỗi bài giảng của bạn là một hạt giống tri thức được gieo vào tâm hồn sinh viên! 🌱", author: "Smart Attendance" },
-  { quote: "Giáo viên giỏi không chỉ dạy kiến thức, mà còn truyền cảm hứng cho cả cuộc đời! ✨", author: "Smart Attendance" },
-  { quote: "Hôm nay là một ngày tuyệt vời để tạo ra sự khác biệt trong cuộc đời ai đó! 🌟", author: "Smart Attendance" },
-  { quote: "Bạn đang làm công việc tuyệt vời nhất thế giới - định hình tương lai! 🚀", author: "Smart Attendance" },
-  { quote: "Mỗi sinh viên là một câu chuyện, và bạn đang viết nên những chương tuyệt đẹp! 📖", author: "Smart Attendance" },
-  { quote: "Năng lượng tích cực của bạn sẽ lan tỏa đến cả lớp học hôm nay! ☀️", author: "Smart Attendance" },
-  { quote: "Đừng quên: bạn là nguồn cảm hứng cho hàng trăm sinh viên! 💪", author: "Smart Attendance" },
-  { quote: "Kiến thức bạn truyền đạt hôm nay sẽ thay đổi thế giới ngày mai! 🌍", author: "Smart Attendance" },
-  { quote: "Mỗi câu hỏi của sinh viên là cơ hội để bạn tỏa sáng! 💡", author: "Smart Attendance" },
-  { quote: "Bạn không chỉ là giáo viên, bạn là người dẫn đường cho những ước mơ! 🎯", author: "Smart Attendance" },
+  { quote: "Mỗi bài giảng của bạn là một hạt giống tri thức được gieo vào tâm hồn sinh viên! 🌱", author: "NCT EDU" },
+  { quote: "Giáo viên giỏi không chỉ dạy kiến thức, mà còn truyền cảm hứng cho cả cuộc đời! ✨", author: "NCT EDU" },
+  { quote: "Hôm nay là một ngày tuyệt vời để tạo ra sự khác biệt trong cuộc đời ai đó! 🌟", author: "NCT EDU" },
+  { quote: "Bạn đang làm công việc tuyệt vời nhất thế giới - định hình tương lai! 🚀", author: "NCT EDU" },
+  { quote: "Mỗi sinh viên là một câu chuyện, và bạn đang viết nên những chương tuyệt đẹp! 📖", author: "NCT EDU" },
+  { quote: "Năng lượng tích cực của bạn sẽ lan tỏa đến cả lớp học hôm nay! ☀️", author: "NCT EDU" },
+  { quote: "Đừng quên: bạn là nguồn cảm hứng cho hàng trăm sinh viên! 💪", author: "NCT EDU" },
+  { quote: "Kiến thức bạn truyền đạt hôm nay sẽ thay đổi thế giới ngày mai! 🌍", author: "NCT EDU" },
+  { quote: "Mỗi câu hỏi của sinh viên là cơ hội để bạn tỏa sáng! 💡", author: "NCT EDU" },
+  { quote: "Bạn không chỉ là giáo viên, bạn là người dẫn đường cho những ước mơ! 🎯", author: "NCT EDU" },
 ];
 
 const LecturerDashboard: React.FC = () => {

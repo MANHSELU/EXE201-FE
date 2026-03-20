@@ -11,9 +11,9 @@ const DEV_MODE = true;
 const MODEL_URL = "/models";
 
 // CONFIG
-const REQUIRED_MATCH_RATE = 0.6;  // 60% frame phải khớp
-const REQUIRED_FRAMES = 8;        // cần 8 lần verify (nhanh hơn)
-const MATCH_THRESHOLD = 0.5;      // Euclidean distance threshold
+const REQUIRED_MATCH_RATE = 0.75;  // 75% frame phải khớp
+const REQUIRED_FRAMES = 10;       // cần 10 lần verify
+const MATCH_THRESHOLD = 0.4;      // Euclidean distance threshold (nghiêm hơn)
 const EAR_THRESHOLD = 0.25;
 const MAR_THRESHOLD = 0.55;
 const YAW_THRESHOLD = 0.13;

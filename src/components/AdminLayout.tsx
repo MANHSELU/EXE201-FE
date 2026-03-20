@@ -166,18 +166,18 @@ const navSections = [
   {
     title: "Lịch & Lớp",
     items: [
-      { path: "/admin/semesters", label: "Khóa đào tạo", icon: "event" },
-      { path: "/admin/slots", label: "Lịch học (tiết)", icon: "calendar_today" },
-      { path: "/admin/teaching-schedules", label: "Lịch dạy", icon: "schedule" },
+      { path: "/admin/semesters", label: "Quản lí kì học", icon: "event" },
+      { path: "/admin/slots", label: "Quản lí lịch học", icon: "calendar_today" },
+      { path: "/admin/teaching-schedules", label: "Quản lí lịch dạy", icon: "schedule" },
       { path: "/admin/class-students", label: "Sinh viên theo lớp", icon: "group" },
     ],
   },
   {
     title: "Danh mục",
     items: [
-      { path: "/admin/subjects", label: "Môn học", icon: "menu_book" },
-      { path: "/admin/classes", label: "Lớp học", icon: "class" },
-      { path: "/admin/rooms", label: "Phòng học", icon: "meeting_room" },
+      { path: "/admin/subjects", label: "Quản lí môn học", icon: "menu_book" },
+      { path: "/admin/classes", label: "Quản lí lớp học", icon: "class" },
+      { path: "/admin/rooms", label: "Quản lí phòng học", icon: "meeting_room" },
     ],
   },
   {
@@ -227,7 +227,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
             <div className="admin-sidebar-logo-icon">
               <span className="material-icons-outlined" style={{ color: "white", fontSize: "24px" }}>admin_panel_settings</span>
             </div>
-            <Link to="/admin/dashboard" className="admin-sidebar-logo-text">Smart Attendance</Link>
+            <Link to="/admin/dashboard" className="admin-sidebar-logo-text">NCT EDU</Link>
           </div>
           <nav className="admin-sidebar-nav">
             {navSections.map((section) => (

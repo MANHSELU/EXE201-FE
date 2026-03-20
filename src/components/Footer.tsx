@@ -37,7 +37,7 @@ const Footer: React.FC = () => {
               }}>
                 <span className="material-icons-outlined" style={{ color: 'white', fontSize: '24px' }}>school</span>
               </div>
-              <span style={{ fontSize: '18px', fontWeight: 700 }}>Smart Attendance</span>
+              <span style={{ fontSize: '18px', fontWeight: 700 }}>NCT EDU</span>
             </div>
             <p style={{ fontSize: '14px', color: '#9CA3AF', lineHeight: 1.6 }}>
               Hệ thống điểm danh thông minh sử dụng công nghệ nhận diện khuôn mặt và QR Code.
@@ -132,7 +132,7 @@ const Footer: React.FC = () => {
           gap: '1rem'
         }}>
           <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>
-            © {currentYear} Smart Attendance. All rights reserved.
+            © {currentYear} NCT EDU. All rights reserved.
           </p>
           <div style={{ display: 'flex', gap: '1.5rem' }}>
             <a href="#" style={{ fontSize: '14px', color: '#6B7280', textDecoration: 'none' }}>Privacy Policy</a>

@@ -232,7 +232,7 @@ const Login: React.FC = () => {
             </div>
 
             <div className="text-center mt-8 text-sm text-gray-400">
-              © 2024 Smart Attendance System. All rights reserved.
+              © 2024 NCT EDU. All rights reserved.
             </div>
           </div>
         </main>

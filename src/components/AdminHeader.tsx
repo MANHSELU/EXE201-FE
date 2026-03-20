@@ -139,7 +139,7 @@ export default function AdminHeader() {
             <div className="admin-logo-icon">
               <span className="material-icons-outlined" style={{ color: "white", fontSize: "24px" }}>admin_panel_settings</span>
             </div>
-            <Link to="/admin/dashboard" className="admin-logo-text">Smart Attendance</Link>
+            <Link to="/admin/dashboard" className="admin-logo-text">NCT EDU</Link>
           </div>
 
           <nav className="admin-nav-links">

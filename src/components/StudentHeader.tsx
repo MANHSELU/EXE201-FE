@@ -284,7 +284,7 @@ export default function StudentHeader() {
             <div className="student-logo-icon">
               <span className="material-icons-outlined" style={{ color: "white", fontSize: "24px" }}>school</span>
             </div>
-            <a href="/student/dashboard" className="student-logo-text" style={{ textDecoration: "none", color: "inherit" }}>Smart Attendance</a>
+            <a href="/student/dashboard" className="student-logo-text" style={{ textDecoration: "none", color: "inherit" }}>NCT EDU</a>
           </div>
 
           <nav className="student-nav-links">

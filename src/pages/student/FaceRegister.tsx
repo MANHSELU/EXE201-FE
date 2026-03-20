@@ -6,7 +6,7 @@ import StudentHeader from "../../components/StudentHeader";
 import api from "../../services/api";
 import * as faceapi from "face-api.js";
 
-const TOTAL_SAMPLES = 10;
+const TOTAL_SAMPLES = 15;
 const MODEL_URL = "/models";
 
 export default function FaceRegister() {
@@ -98,7 +98,7 @@ export default function FaceRegister() {
 
     try {
       const detection = await faceapi
-        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.15 }))
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.1 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
@@ -106,7 +106,7 @@ export default function FaceRegister() {
         setFaceDetected(true);
 
         const now = Date.now();
-        if (now - lastCaptureRef.current >= 400 && descriptorsRef.current.length < TOTAL_SAMPLES) {
+        if (now - lastCaptureRef.current >= 300 && descriptorsRef.current.length < TOTAL_SAMPLES) {
           descriptorsRef.current.push(detection.descriptor);
           const count = descriptorsRef.current.length;
           setSampleCount(count);
@@ -132,9 +132,22 @@ export default function FaceRegister() {
           if (ctx) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const box = resizedDetection.detection.box;
-            ctx.strokeStyle = "#22c55e";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
+            ctx.strokeStyle = "#FF7043";
+            ctx.lineWidth = 4;
+            ctx.lineJoin = "round";
+            const r = 12;
+            ctx.beginPath();
+            ctx.moveTo(box.x + r, box.y);
+            ctx.lineTo(box.x + box.width - r, box.y);
+            ctx.arcTo(box.x + box.width, box.y, box.x + box.width, box.y + r, r);
+            ctx.lineTo(box.x + box.width, box.y + box.height - r);
+            ctx.arcTo(box.x + box.width, box.y + box.height, box.x + box.width - r, box.y + box.height, r);
+            ctx.lineTo(box.x + r, box.y + box.height);
+            ctx.arcTo(box.x, box.y + box.height, box.x, box.y + box.height - r, r);
+            ctx.lineTo(box.x, box.y + r);
+            ctx.arcTo(box.x, box.y, box.x + r, box.y, r);
+            ctx.closePath();
+            ctx.stroke();
           }
         }
       } else {
@@ -221,7 +234,7 @@ export default function FaceRegister() {
         }
         .main-content {
           width: 100%;
-          max-width: 600px;
+          max-width: 800px;
           margin: 0 auto;
         }
         .card {
@@ -350,19 +363,6 @@ export default function FaceRegister() {
           pointer-events: none;
           transform: scaleX(-1);
         }
-        .face-guide {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 65%;
-          height: 55%;
-          border: 4px solid;
-          border-radius: 50%;
-          transition: border-color 0.3s;
-        }
-        .face-guide.detected { border-color: #22c55e; }
-        .face-guide.not-detected { border-color: #FF7043; }
         .camera-top-bar {
           position: absolute;
           top: 0;
@@ -404,7 +404,7 @@ export default function FaceRegister() {
           border-radius: 50%;
           transition: all 0.2s;
         }
-        .progress-dot.active { background: #22c55e; transform: scale(1.2); }
+        .progress-dot.active { background: #FF7043; transform: scale(1.2); }
         .progress-dot.inactive { background: rgba(255,255,255,0.3); }
         .status-badge {
           padding: 0.5rem 1rem;
@@ -446,7 +446,7 @@ export default function FaceRegister() {
         }
         .progress-bar {
           height: 100%;
-          background: linear-gradient(90deg, #22c55e, #4ade80);
+          background: linear-gradient(90deg, #FF7043, #FF5722);
           border-radius: 4px;
           transition: width 0.3s;
         }
@@ -558,9 +558,6 @@ export default function FaceRegister() {
                 <div className="camera-container">
                   <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
                   <canvas ref={canvasRef} className="camera-overlay" />
-
-                  {/* Face guide oval */}
-                  <div className={`face-guide ${faceDetected ? "detected" : "not-detected"}`}></div>
 
                   {/* Top bar */}
                   <div className="camera-top-bar">

@@ -274,7 +274,7 @@ export default function LecturerHeader() {
             <div className="lecturer-logo-icon">
               <span className="material-icons-outlined" style={{ color: "white", fontSize: "24px" }}>school</span>
             </div>
-            <a href="/lecturer/dashboard" className="lecturer-logo-text" style={{ textDecoration: "none", color: "inherit" }}>Smart Attendance</a>
+            <a href="/lecturer/dashboard" className="lecturer-logo-text" style={{ textDecoration: "none", color: "inherit" }}>NCT EDU</a>
           </div>
 
           <nav className="lecturer-nav-links">

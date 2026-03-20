@@ -617,13 +617,13 @@ const LecturerSchedule: React.FC = () => {
                         <div className="card-header">
                           <span className="room-text">Phòng: <strong>{slot.roomId.name}</strong></span>
                           {(() => {
-                            const isAttended = slot.status === "ATTENDED" || slot.status === "COMPLETED";
-                            if (isAttended) {
+                            const isAttended = slot.status === "ATTENDED" || slot.status === "COMPLETED" || slot.hasAttendanceSession;
+                            if (isAttended && isPast) {
                               return <span className="badge" style={{ background: '#E8F5E9', color: '#2E7D32' }}>✓ Đã điểm danh</span>;
                             } else if (isHappening) {
                               return <span className="badge" style={{ background: '#FFF3E0', color: '#E65100' }}>● Đang diễn ra</span>;
                             } else if (isPast) {
-                              return <span className="badge badge-ended">Đã kết thúc</span>;
+                              return <span className="badge badge-ended">Chưa điểm danh</span>;
                             } else {
                               return <span className="badge badge-upcoming">Sắp tới</span>;
                             }
@@ -644,15 +644,15 @@ const LecturerSchedule: React.FC = () => {
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
                           {(() => {
                             // Check status từ slot
-                            const isAttended = slot.status === "ATTENDED" || slot.status === "COMPLETED";
-                            
+                            const isAttended = slot.status === "ATTENDED" || slot.status === "COMPLETED" || slot.hasAttendanceSession;
+
                             // Check thời gian (so sánh UTC)
                             const isNotYet = nowUTC < slotStartUTC;
                             const isActive = nowUTC >= slotStartUTC && nowUTC <= slotEndUTC;
                             const isEnded = nowUTC > slotEndUTC;
 
-                            // 1. Đã điểm danh rồi (ưu tiên cao nhất)
-                            if (isAttended) {
+                            // 1. Đã tạo mã điểm danh và hết giờ
+                            if (isAttended && isEnded) {
                               return (
                                 <button className="materials-btn attended" disabled>
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -662,14 +662,14 @@ const LecturerSchedule: React.FC = () => {
                                 </button>
                               );
                             }
-                            
+
                             // 2. Đã kết thúc (hết giờ mà chưa điểm danh)
                             if (isEnded) {
                               return (
                                 <button className="materials-btn ended" disabled>
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span className="material-icons-outlined" style={{ fontSize: '18px' }}>event_busy</span>
-                                    Đã kết thúc
+                                    Chưa điểm danh
                                   </span>
                                 </button>
                               );
