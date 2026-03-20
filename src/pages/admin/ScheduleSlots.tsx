@@ -34,18 +34,6 @@ const AdminScheduleSlots: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedSemesterId, setSelectedSemesterId] = useState("");
 
-  // Create form
-  const [semesterId, setSemesterId] = useState("");
-  const [subjectId, setSubjectId] = useState("");
-  const [classId, setClassId] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [teacherId, setTeacherId] = useState("");
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("07:30");
-  const [endTime, setEndTime] = useState("09:30");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   // Filters
   const [filterTeacherId, setFilterTeacherId] = useState("");
@@ -84,20 +72,6 @@ const AdminScheduleSlots: React.FC = () => {
 
   useEffect(() => { if (!loading) fetchSlots(); }, [selectedSemesterId]);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(""); setSuccess(""); setSubmitting(true);
-    try {
-      const sid = semesterId || selectedSemesterId;
-      if (!sid) { setError("Vui lòng chọn kì học."); setSubmitting(false); return; }
-      await api.post("/admin/slots", { semesterId: sid, subjectId, classId, roomId, teacherId, date, startTime, endTime });
-      setDate(""); setStartTime("07:30"); setEndTime("09:30");
-      setSuccess("Tạo buổi học thành công!"); setTimeout(() => setSuccess(""), 3000);
-      if (!selectedSemesterId) setSelectedSemesterId(sid);
-      fetchSlots();
-    } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Lỗi tạo buổi học");
-    } finally { setSubmitting(false); }
-  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Xóa buổi học này?")) return;
@@ -167,74 +141,6 @@ const AdminScheduleSlots: React.FC = () => {
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-sm font-semibold text-amber-600">
             <span className={IC} style={{ fontSize: 15 }}>calendar_today</span>{slots.length} buổi
           </span>
-        </div>
-      </div>
-
-      {/* Create single slot */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-6 overflow-hidden">
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-white">
-          <span className={IC} style={{ color: "#FF7043", fontSize: 20 }}>add_circle</span>
-          <h2 className="font-semibold text-gray-800">Tạo buổi học mới (thủ công)</h2>
-        </div>
-        <div className="p-6">
-          <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Kì học</label>
-              <select value={semesterId || selectedSemesterId} onChange={(e) => setSemesterId(e.target.value)} className={inputCls} required>
-                <option value="">-- Chọn kì --</option>
-                {semesters.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Môn học</label>
-              <select value={subjectId} onChange={(e) => setSubjectId(e.target.value)} className={inputCls} required>
-                <option value="">-- Chọn môn --</option>
-                {subjects.map((s) => <option key={s._id} value={s._id}>{s.code} - {s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Lớp học</label>
-              <select value={classId} onChange={(e) => setClassId(e.target.value)} className={inputCls} required>
-                <option value="">-- Chọn lớp --</option>
-                {classes.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Phòng học</label>
-              <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className={inputCls} required>
-                <option value="">-- Chọn phòng --</option>
-                {rooms.map((r) => <option key={r._id} value={r._id}>{r.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Giảng viên</label>
-              <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className={inputCls} required>
-                <option value="">-- Chọn GV --</option>
-                {lecturers.map((l) => <option key={l._id} value={l._id}>{l.fullName}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Ngày học</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} required />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Giờ bắt đầu</label>
-              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Giờ kết thúc</label>
-              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={inputCls} />
-            </div>
-            <div className="flex items-end">
-              <button type="submit" disabled={submitting}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 disabled:opacity-50 transition text-sm">
-                <span className={IC} style={{ fontSize: 18 }}>{submitting ? "hourglass_empty" : "add"}</span>
-                {submitting ? "Đang tạo..." : "Tạo buổi học"}
-              </button>
-            </div>
-          </form>
-          {error && <div className="mt-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg"><span className={IC} style={{ fontSize: 16 }}>error_outline</span>{error}</div>}
-          {success && <div className="mt-3 flex items-center gap-2 text-sm text-green-600 bg-green-50 px-4 py-2.5 rounded-lg"><span className={IC} style={{ fontSize: 16 }}>check_circle</span>{success}</div>}
         </div>
       </div>
 
