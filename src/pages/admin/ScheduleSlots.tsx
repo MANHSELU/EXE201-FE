@@ -39,6 +39,7 @@ const AdminScheduleSlots: React.FC = () => {
   const [filterTeacherId, setFilterTeacherId] = useState("");
   const [filterSubjectId, setFilterSubjectId] = useState("");
   const [filterDate, setFilterDate] = useState("");
+  const [showPast, setShowPast] = useState(false);
 
   // Edit modal
   const [editSlot, setEditSlot] = useState<Slot | null>(null);
@@ -48,7 +49,10 @@ const AdminScheduleSlots: React.FC = () => {
 
   const fetchSlots = async () => {
     try {
-      const url = selectedSemesterId ? `/admin/slots?semesterId=${selectedSemesterId}` : "/admin/slots";
+      const params = new URLSearchParams();
+      if (selectedSemesterId) params.append("semesterId", selectedSemesterId);
+      if (showPast) params.append("showPast", "true");
+      const url = `/admin/slots${params.toString() ? `?${params}` : ""}`;
       const res = await api.get(url);
       setSlots(res.data.data || []);
     } catch { setSlots([]); }
@@ -70,7 +74,7 @@ const AdminScheduleSlots: React.FC = () => {
     (async () => { setLoading(true); await Promise.all([fetchSlots(), fetchOptions()]); setLoading(false); })();
   }, []);
 
-  useEffect(() => { if (!loading) fetchSlots(); }, [selectedSemesterId]);
+  useEffect(() => { if (!loading) fetchSlots(); }, [selectedSemesterId, showPast]);
 
 
   const handleDelete = async (id: string) => {
@@ -172,8 +176,13 @@ const AdminScheduleSlots: React.FC = () => {
           </select>
           <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)}
             className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white" />
-          {(selectedSemesterId || filterTeacherId || filterSubjectId || filterDate) && (
-            <button type="button" onClick={() => { setSelectedSemesterId(""); setFilterTeacherId(""); setFilterSubjectId(""); setFilterDate(""); }}
+          <button type="button" onClick={() => setShowPast(!showPast)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${showPast ? "bg-orange-100 text-orange-700 border border-orange-300" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+            <span className={IC} style={{ fontSize: 14, verticalAlign: "middle", marginRight: 4 }}>history</span>
+            Đã kết thúc
+          </button>
+          {(selectedSemesterId || filterTeacherId || filterSubjectId || filterDate || showPast) && (
+            <button type="button" onClick={() => { setSelectedSemesterId(""); setFilterTeacherId(""); setFilterSubjectId(""); setFilterDate(""); setShowPast(false); }}
               className="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
               Xóa bộ lọc
             </button>

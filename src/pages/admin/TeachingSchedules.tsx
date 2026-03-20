@@ -71,6 +71,7 @@ const AdminTeachingSchedules: React.FC = () => {
   const [filterTeacherId, setFilterTeacherId] = useState("");
   const [filterSubjectId, setFilterSubjectId] = useState("");
   const [filterDate, setFilterDate] = useState("");
+  const [showPast, setShowPast] = useState(false);
 
   const fetchList = async () => {
     try { const res = await api.get("/admin/teaching-schedules"); setList(res.data.data || []); } catch { setList([]); }
@@ -89,7 +90,10 @@ const AdminTeachingSchedules: React.FC = () => {
   const fetchSlots = async () => {
     setSlotsLoading(true);
     try {
-      const url = filterSemesterId ? `/admin/slots?semesterId=${filterSemesterId}` : "/admin/slots";
+      const params = new URLSearchParams();
+      if (filterSemesterId) params.append("semesterId", filterSemesterId);
+      if (showPast) params.append("showPast", "true");
+      const url = `/admin/slots${params.toString() ? `?${params}` : ""}`;
       const res = await api.get(url);
       setAllSlots(res.data.data || []);
     } catch { setAllSlots([]); }
@@ -97,7 +101,7 @@ const AdminTeachingSchedules: React.FC = () => {
   };
 
   useEffect(() => { (async () => { setLoading(true); await Promise.all([fetchList(), fetchOptions(), fetchSlots()]); setLoading(false); })(); }, []);
-  useEffect(() => { if (!loading) fetchSlots(); }, [filterSemesterId]);
+  useEffect(() => { if (!loading) fetchSlots(); }, [filterSemesterId, showPast]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault(); setError(""); setSuccess(""); setSubmitting(true);
@@ -335,8 +339,13 @@ const AdminTeachingSchedules: React.FC = () => {
           </select>
           <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)}
             className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white" />
-          {(filterSemesterId || filterTeacherId || filterSubjectId || filterDate) && (
-            <button type="button" onClick={() => { setFilterSemesterId(""); setFilterTeacherId(""); setFilterSubjectId(""); setFilterDate(""); }}
+          <button type="button" onClick={() => setShowPast(!showPast)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${showPast ? "bg-orange-100 text-orange-700 border border-orange-300" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+            <span className={IC} style={{ fontSize: 14, verticalAlign: "middle", marginRight: 4 }}>history</span>
+            Đã kết thúc
+          </button>
+          {(filterSemesterId || filterTeacherId || filterSubjectId || filterDate || showPast) && (
+            <button type="button" onClick={() => { setFilterSemesterId(""); setFilterTeacherId(""); setFilterSubjectId(""); setFilterDate(""); setShowPast(false); }}
               className="px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
               Xóa bộ lọc
             </button>
