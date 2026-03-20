@@ -20,6 +20,7 @@ interface ScheduleSlot {
   startTime: string;
   endTime: string;
   status: string; // "PENDING" | "ATTENDED" | "COMPLETED" | "CANCELLED"
+  hasAttendanceSession?: boolean;
 }
 
 const LecturerSchedule: React.FC = () => {
