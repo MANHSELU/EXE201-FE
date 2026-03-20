@@ -6,6 +6,9 @@ import { useSearchParams } from "react-router-dom";
 import StudentHeader from "../../components/StudentHeader";
 import { useAuth } from "../../context/AuthContext";
 
+const getImgUrl = (img: string) =>
+  img.startsWith("http") ? img : `${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000"}${img}`;
+
 interface Author { _id: string; fullName: string; role: string; }
 interface Comment { _id: string; authorId: Author; content: string; images?: string[]; parentCommentId?: string; replyToName?: string; likes: string[]; createdAt: string; }
 interface Post {
@@ -359,10 +362,10 @@ export default function StudentFeed() {
             <div className={`mt-3 grid gap-1 rounded-lg overflow-hidden ${post.images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
               style={{ background: "#F3F4F6" }}>
               {post.images.map((img, i) => (
-                <img key={i} src={`${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000"}${img}`}
+                <img key={i} src={getImgUrl(img)}
                   alt="" className="w-full object-contain cursor-pointer hover:opacity-95 transition"
                   style={{ maxHeight: 500 }}
-                  onClick={() => setLightboxImg(`${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000"}${img}`)} />
+                  onClick={() => setLightboxImg(getImgUrl(img))} />
               ))}
             </div>
           )}
@@ -429,10 +432,10 @@ export default function StudentFeed() {
                           {c.images && c.images.length > 0 && (
                             <div className="mt-1 flex flex-wrap gap-1">
                               {c.images.map((img, i) => (
-                                <img key={i} src={`${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000"}${img}`}
+                                <img key={i} src={getImgUrl(img)}
                                   alt="" className="rounded-lg cursor-pointer hover:opacity-90 transition object-contain"
                                   style={{ maxWidth: 200, maxHeight: 150, background: "#E5E7EB" }}
-                                  onClick={() => setLightboxImg(`${import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000"}${img}`)} />
+                                  onClick={() => setLightboxImg(getImgUrl(img))} />
                               ))}
                             </div>
                           )}

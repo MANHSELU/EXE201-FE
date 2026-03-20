@@ -49,6 +49,7 @@ const AdminPosts: React.FC = () => {
   const [processing, setProcessing] = useState<string>("");
   const [lightboxImg, setLightboxImg] = useState<string>("");
   const baseUrl = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:3000";
+  const getImgUrl = (img: string) => img.startsWith("http") ? img : `${baseUrl}${img}`;
 
   const fetchPosts = async (status?: string) => {
     try {
@@ -200,11 +201,11 @@ const AdminPosts: React.FC = () => {
                       {post.images.map((img, i) => (
                         <img
                           key={i}
-                          src={`${baseUrl}${img}`}
+                          src={getImgUrl(img)}
                           alt=""
                           className="w-full object-cover cursor-pointer hover:opacity-90 transition rounded-lg border border-gray-100"
                           style={{ maxHeight: post.images!.length === 1 ? 400 : 200 }}
-                          onClick={() => setLightboxImg(`${baseUrl}${img}`)}
+                          onClick={() => setLightboxImg(getImgUrl(img))}
                         />
                       ))}
                     </div>
